@@ -1,6 +1,7 @@
 use std::io;
 
 use bevy::ecs::entity::Entity;
+use bevy::ecs::event::EventWriter;
 use bevy::prelude::Commands;
 use bevy::prelude::Query;
 use rand::prelude::*;
@@ -113,10 +114,6 @@ pub fn execute_turn(
 ) {
     let (game_state, mut cards_played) = game_state_query.single_mut();
 
-    if game_state.game_over {
-        return;
-    }
-
     let (player, mut player_hand) = player_query
         .iter_mut()
         .filter(|p| p.0.player_id == game_state.player_turn)
@@ -152,14 +149,11 @@ pub fn execute_turn(
 }
 
 pub fn handle_after_turn(
+    mut exit: EventWriter<bevy::app::AppExit>,
     mut game_state_query: Query<(&mut GameState, &PlayerCount)>,
     mut player_query: Query<(&Player, &PlayerHand)>,
 ) {
     let (mut game_state, player_count) = game_state_query.single_mut();
-
-    if game_state.game_over {
-        return;
-    }
 
     game_state.player_turn = (game_state.player_turn + 1) % player_count.0;
 
@@ -184,6 +178,11 @@ pub fn handle_after_turn(
     if player_tried == player_count.0 {
         println!("All players have played all their cards. Game over!");
         game_state.game_over = true;
+    }
+
+    if game_state.game_over {
+        exit.send(bevy::app::AppExit::Success);
+        return;
     }
 }
 
