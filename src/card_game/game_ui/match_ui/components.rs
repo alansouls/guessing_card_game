@@ -2,7 +2,7 @@ use bevy::ecs::component::Component;
 
 
 #[derive(Component)]
-pub struct CurrentPlayer(pub i8);
+pub struct CurrentPlayer(pub usize);
 
 #[derive(Component)]
 pub struct MatchUI;

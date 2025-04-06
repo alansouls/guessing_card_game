@@ -30,6 +30,6 @@ pub struct Card(pub Suit, pub Rank);
 
 #[derive(Clone, Copy, Debug)]
 pub struct PlayedCard{
-    pub player_id: u8,
+    pub player_id: usize,
     pub card: Card,
 }
