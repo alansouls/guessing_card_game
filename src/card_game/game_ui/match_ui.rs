@@ -10,7 +10,7 @@ use super::despawn_screen;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum MatchState {
-    Playing,
+    Enabled,
     #[default]
     Disabled,
 }
