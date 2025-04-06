@@ -23,6 +23,7 @@ pub struct GameUIPlugin;
 impl Plugin for GameUIPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(GameUIMenuPlugin)
+            .add_plugins(match_ui::GameUIMatchPlugin)
             .add_systems(Startup, setup);
     }
 }

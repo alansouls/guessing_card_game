@@ -1,11 +1,12 @@
 use bevy::{
-    app::{App, Startup, Update},
+    app::{App, Update},
     ecs::schedule::IntoSystemConfigs,
     prelude::Plugin, state::{condition::in_state, state::OnEnter},
 };
 
 pub mod components;
 pub mod systems;
+pub mod game_logic;
 
 pub struct GameManagerPlugin;
 

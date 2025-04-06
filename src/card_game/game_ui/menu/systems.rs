@@ -300,6 +300,7 @@ pub fn menu_action(
                 MenuButtonAction::PlayLocalGame => menu_state.set(MenuState::LocalGame),
                 MenuButtonAction::PlayOnlineGame => menu_state.set(MenuState::OnlineGame),
                 MenuButtonAction::ConfirmLocalGame => {
+                    menu_state.set(MenuState::Disabled);
                     game_state.set(GameState::LocalGame);
                 }
                 MenuButtonAction::BackToMainMenu => {

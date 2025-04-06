@@ -30,6 +30,7 @@ impl Plugin for GameUIMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<MenuState>()
             .add_systems(OnEnter(GameState::Menu), menu_setup)
+            .add_systems(OnExit(GameState::Menu), despawn_screen::<components::OnMainMenuScreen>)
             .add_systems(OnEnter(MenuState::Main), main_menu_setup)
             .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)
             .add_systems(OnEnter(MenuState::LocalGame), local_game_menu_setup)
