@@ -1,54 +1,18 @@
 use bevy::color::palettes::css::CRIMSON;
 use bevy::prelude::*;
 
+use crate::card_game::game_ui::components::ButtonDisabled;
 use crate::card_game::game_ui::DISABLED_TEXT_COLOR;
 use crate::card_game::GameState;
 
 const MIN_PLAYERS: usize = 2;
 const MAX_PLAYERS: usize = 8;
 
-use super::super::{DISABLED_BUTTON, HOVERED_BUTTON, NORMAL_BUTTON, PRESSED_BUTTON, TEXT_COLOR};
+use super::super::{DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR};
 
 use super::MenuState;
 use super::components::*;
 use super::events::{AddPlayer, RemovePlayer};
-
-pub fn button_enabled(
-    mut removed_disabled_query: RemovedComponents<ButtonDisabled>,
-    mut query_for_removed: Query<&mut BackgroundColor, With<Button>>,
-) {
-    // Remove the disabled state from the button if it is removed from the entity
-    for entity in removed_disabled_query.read() {
-        if let Ok(mut background_color) = query_for_removed.get_mut(entity) {
-            *background_color = NORMAL_BUTTON.into();
-        }
-    }
-}
-
-pub fn button_system(
-    mut interaction_query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            Option<&ButtonDisabled>,
-        ),
-        (
-            Or<(Added<ButtonDisabled>, Changed<Interaction>)>,
-            With<Button>,
-        ),
-    >,
-) {
-    for (interaction, mut background_color,  button_dissabled) in
-        &mut interaction_query
-    {
-        *background_color = match (*interaction, button_dissabled) {
-            (_, Some(_)) => DISABLED_BUTTON.into(),
-            (Interaction::Pressed, None) => PRESSED_BUTTON.into(),
-            (Interaction::Hovered, None) => HOVERED_BUTTON.into(),
-            (Interaction::None, None) => NORMAL_BUTTON.into(),
-        };
-    }
-}
 
 pub fn menu_setup(mut menu_state: ResMut<NextState<MenuState>>) {
     menu_state.set(MenuState::Main);

@@ -6,14 +6,14 @@ use bevy::prelude::*;
 use components::{OnLocalGameScreen, OnMainMenuScreen};
 use events::{AddPlayer, RemovePlayer};
 use systems::{
-    add_player, button_enabled, button_system, enable_disable_add_player_button,
+    add_player, enable_disable_add_player_button,
     enable_disable_remove_player_button, local_game_menu_setup, main_menu_setup, menu_action,
     menu_setup, remove_player, update_player_count_text,
 };
 
 use crate::card_game::GameState;
 
-use super::despawn_screen;
+use super::systems::despawn_screen;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum MenuState {
@@ -43,8 +43,6 @@ impl Plugin for GameUIMenuPlugin {
             .add_systems(
                 Update,
                 (
-                    button_enabled,
-                    button_system,
                     menu_action,
                     add_player,
                     remove_player,

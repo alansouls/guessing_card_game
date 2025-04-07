@@ -1,26 +1,23 @@
 use bevy::{
     asset::Assets,
-    color::{Color, palettes::css::CRIMSON},
+    color::{palettes::css::CRIMSON, Color},
     ecs::{
         entity::Entity,
-        query::{With, Without},
+        query::{Added, With, Without},
         system::{Commands, Query, Res, ResMut, Single},
     },
     hierarchy::{BuildChildren, ChildBuild},
-    input::{ButtonInput, mouse::MouseButton},
-    math::{Vec2, primitives::Rectangle},
+    input::{mouse::MouseButton, ButtonInput},
+    math::{primitives::Rectangle, Vec2},
     render::{
         camera::Camera,
         mesh::{Mesh, Mesh2d},
     },
     sprite::{ColorMaterial, MeshMaterial2d},
-    state::state::NextState,
     text::{TextColor, TextFont},
     transform::components::{GlobalTransform, Transform},
     ui::{
-        AlignItems, BackgroundColor, FlexDirection, JustifyContent, Node, PositionType, UiRect,
-        Val,
-        widget::{Button, Text},
+        widget::{Button, Text}, AlignItems, BackgroundColor, FlexDirection, JustifyContent, Node, PositionType, UiRect, Val
     },
     utils::default,
     window::Window,
@@ -28,7 +25,7 @@ use bevy::{
 
 use crate::card_game::{
     game_logic_runner::components::{Card, CurrentPlayer, Guess},
-    game_ui::{menu::components::ButtonDisabled, DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR},
+    game_ui::{components::ButtonDisabled, DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR},
 };
 
 use super::components::{
@@ -38,18 +35,37 @@ use super::components::{
 const CARD_WIDTH: f32 = 125.0;
 const CARD_HEIGHT: f32 = 200.0;
 
+pub fn add_cards_meshes(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    card_query: Query<Entity, Added<Card>>,
+) {
+    let mut inital_x = -300.0;
+    const SPACING : f32 = 20.0 + CARD_WIDTH;
+    for entity_id in card_query.iter() {
+        println!("Adding meshes to: {:?}", entity_id);
+        let mut entity = commands.entity(entity_id);
+
+        entity.insert((
+            Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
+            MeshMaterial2d(materials.add(Color::WHITE)),
+            Transform::from_xyz(inital_x, -200.0, 0.0),
+            inital_x += SPACING,
+        ));
+    }
+}
+
 pub fn match_ui_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    // commands.spawn((
-    //     Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
-    //     MeshMaterial2d(materials.add(Color::WHITE)),
-    //     Transform::from_xyz(-300.0, -200.0, 0.0),
-    //     MatchUI,
-    //     Card,
-    // ));
+    commands.spawn((
+        Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
+        // MeshMaterial2d(materials.add(Color::WHITE)),
+        MatchUI
+    ));
 
     commands.spawn((
         Text::new("Player 1's turn"),

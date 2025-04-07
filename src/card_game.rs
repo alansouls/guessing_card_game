@@ -3,7 +3,7 @@ use bevy::{
     ecs::system::Resource,
     state::{app::AppExtStates, state::States},
 };
-use game_logic::{GameLogic, local::LocalGameLogic};
+use game_logic::local::LocalGameLogic;
 
 pub mod game_logic;
 pub mod game_logic_runner;

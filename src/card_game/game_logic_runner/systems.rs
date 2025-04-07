@@ -1,17 +1,15 @@
 use bevy::{
     ecs::{
         event::{EventReader, EventWriter},
-        system::{Res, ResMut, Single},
+        system::{Commands, Res, ResMut, Single},
     },
-    state::state::NextState,
+    state::{commands, state::NextState},
 };
 
 use crate::card_game::{GameSettings, LocalGameLogicRes, game_logic::GameLogic};
 
 use super::{
-    MatchState,
-    components::CurrentPlayer,
-    events::{CardPlayed, GameEnded, PlayerGuessed},
+    components::{self, CurrentPlayer}, events::{CardPlayed, GameEnded, PlayerGuessed}, MatchState
 };
 
 pub fn handle_game_start(
@@ -78,5 +76,21 @@ fn update_current_player(
         match_state.set(MatchState::Finished);
     } else {
         match_state.set(MatchState::Playing);
+    }
+}
+
+pub fn spawn_cards(
+    mut commands: Commands,
+    game_logic: Res<LocalGameLogicRes>,
+) {
+    for player_id in 0..game_logic.0.player_card_count.len() {
+        let cards = game_logic.0.get_player_cards(player_id as usize);
+        for card in cards {
+            println!("Spawning card: {:?}", card);
+            commands.spawn(components::Card{
+                player_id: Some(player_id as usize),
+                card: card.clone(),
+            });
+        }
     }
 }

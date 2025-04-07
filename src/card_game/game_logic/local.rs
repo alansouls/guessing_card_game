@@ -1,4 +1,7 @@
-use super::{common::{Card, PlayedCard, Rank, Suit}, GameLogic};
+use super::{
+    GameLogic,
+    common::{Card, PlayedCard, Rank, Suit},
+};
 
 pub struct LocalGameLogic {
     pub player_turn: usize,
@@ -146,6 +149,7 @@ fn start_match(game_logic: &mut LocalGameLogic) {
     }
     game_logic.deck = create_deck();
     shuffle_deck(&mut game_logic.deck);
+    distribute_cards(game_logic);
     game_logic.guessing_round = true;
     game_logic.guesses = vec![0; game_logic.player_card_count.len()];
 
@@ -153,6 +157,16 @@ fn start_match(game_logic: &mut LocalGameLogic) {
         game_logic.last_to_guess = game_logic.player_card_count.len() - 1;
     } else {
         game_logic.last_to_guess = game_logic.player_turn - 1;
+    }
+}
+
+fn distribute_cards(game_logic: &mut LocalGameLogic) {
+    let mut i = 0;
+    for cards_count in &game_logic.player_card_count {
+        game_logic.player_cards[i] = game_logic
+            .deck
+            .split_off(game_logic.deck.len() - cards_count);
+        i += 1;
     }
 }
 
@@ -227,7 +241,8 @@ impl GameLogic for LocalGameLogic {
     }
 
     fn get_winner(&self) -> usize {
-        return self.player_card_count
+        return self
+            .player_card_count
             .iter()
             .filter(|c| **c > 0)
             .map(|c| *c)

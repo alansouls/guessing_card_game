@@ -21,12 +21,12 @@ pub struct GameLogicRunnerPlugin;
 
 impl Plugin for GameLogicRunnerPlugin {
     fn build(&self, app: &mut App) {
-        app
-        .init_state::<MatchState>()
-        .add_event::<GameEnded>()
+        app.init_state::<MatchState>()
+            .add_event::<GameEnded>()
             .add_event::<CardPlayed>()
             .add_event::<PlayerGuessed>()
             .add_systems(OnEnter(GameState::LocalGame), systems::handle_game_start)
+            .add_systems(OnEnter(MatchState::Guessing), systems::spawn_cards)
             .add_systems(
                 Update,
                 (systems::handle_player_guess, systems::handle_card_played),

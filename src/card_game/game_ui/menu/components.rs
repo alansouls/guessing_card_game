@@ -23,9 +23,6 @@ pub enum MenuButtonAction {
 pub struct NumberOfLocalPLayers(pub usize);
 
 #[derive(Component)]
-pub struct ButtonDisabled;
-
-#[derive(Component)]
 pub struct AddPlayerButton;
 
 #[derive(Component)]
