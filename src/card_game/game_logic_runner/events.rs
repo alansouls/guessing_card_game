@@ -1,9 +1,6 @@
 use bevy::ecs::event::Event;
 
 #[derive(Event)]
-pub struct GameStarted;
-
-#[derive(Event)]
 pub struct GameEnded {
     pub winner: usize,
 }

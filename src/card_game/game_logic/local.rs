@@ -225,4 +225,14 @@ impl GameLogic for LocalGameLogic {
     fn get_player_guess(&self, player_id: usize) -> usize {
         self.guesses[player_id as usize]
     }
+
+    fn get_winner(&self) -> usize {
+        return self.player_card_count
+            .iter()
+            .filter(|c| **c > 0)
+            .map(|c| *c)
+            .collect::<Vec<usize>>()
+            .pop()
+            .expect("No winner found");
+    }
 }

@@ -1,5 +1,9 @@
-use bevy::{app::{App, Plugin}, ecs::system::Resource, state::{app::AppExtStates, state::States}};
-use game_logic::{local::LocalGameLogic, GameLogic};
+use bevy::{
+    app::{App, Plugin},
+    ecs::system::Resource,
+    state::{app::AppExtStates, state::States},
+};
+use game_logic::{GameLogic, local::LocalGameLogic};
 
 pub mod game_logic;
 pub mod game_logic_runner;
@@ -36,8 +40,9 @@ pub struct CardGamePlugin;
 impl Plugin for CardGamePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
-            .add_plugins(game_ui::GameUIPlugin)
             .insert_resource(GameSettings::default())
-            .insert_resource(LocalGameLogicRes(LocalGameLogic::default()));
+            .insert_resource(LocalGameLogicRes(LocalGameLogic::default()))
+            .add_plugins(game_ui::GameUIPlugin)
+            .add_plugins(game_logic_runner::GameLogicRunnerPlugin);
     }
 }

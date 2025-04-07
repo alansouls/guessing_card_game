@@ -1,14 +1,7 @@
 use bevy::ecs::component::Component;
 
-
-#[derive(Component)]
-pub struct CurrentPlayer(pub usize);
-
 #[derive(Component)]
 pub struct MatchUI;
-
-#[derive(Component)]
-pub struct Card;
 
 #[derive(Component)]
 pub struct CardSelected;
@@ -22,3 +15,21 @@ pub enum PauseButtonAction {
     QuitToMainMenu
 }
 
+#[derive(Component)]
+pub enum MatchButtonAction {
+    RemoveGuess,
+    AddGuess,
+    ConfirmGuess
+}
+
+#[derive(Component)]
+pub struct RemoveGuessButton;
+
+#[derive(Component)]
+pub struct AddGuessButton;
+
+#[derive(Component)]
+pub struct ConfirmGuessButton;
+
+#[derive(Component)]
+pub struct GuessUI;

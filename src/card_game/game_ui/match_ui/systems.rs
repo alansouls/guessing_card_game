@@ -26,32 +26,30 @@ use bevy::{
     window::Window,
 };
 
-use crate::card_game::game_ui::{NORMAL_BUTTON, TEXT_COLOR};
-
-use super::{
-    MatchState,
-    components::{Card, CardSelected, CurrentPlayer, MatchUI, OnPauseScreen, PauseButtonAction},
+use crate::card_game::{
+    game_logic_runner::components::{Card, CurrentPlayer, Guess},
+    game_ui::{menu::components::ButtonDisabled, DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR},
 };
+
+use super::components::{
+        AddGuessButton, CardSelected, ConfirmGuessButton, GuessUI, MatchButtonAction, MatchUI, OnPauseScreen, PauseButtonAction, RemoveGuessButton
+    };
 
 const CARD_WIDTH: f32 = 125.0;
 const CARD_HEIGHT: f32 = 200.0;
-
-pub fn match_setup(mut menu_state: ResMut<NextState<MatchState>>) {
-    menu_state.set(MatchState::Playing);
-}
 
 pub fn match_ui_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
-        MeshMaterial2d(materials.add(Color::WHITE)),
-        Transform::from_xyz(-300.0, -200.0, 0.0),
-        MatchUI,
-        Card,
-    ));
+    // commands.spawn((
+    //     Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
+    //     MeshMaterial2d(materials.add(Color::WHITE)),
+    //     Transform::from_xyz(-300.0, -200.0, 0.0),
+    //     MatchUI,
+    //     Card,
+    // ));
 
     commands.spawn((
         Text::new("Player 1's turn"),
@@ -64,6 +62,117 @@ pub fn match_ui_setup(
         CurrentPlayer(0),
         MatchUI,
     ));
+}
+
+pub fn guess_ui_setup(
+    mut commands: Commands
+) {
+    // Common style for all buttons on the screen
+    let button_node = Node {
+        width: Val::Px(300.0),
+        height: Val::Px(65.0),
+        margin: UiRect::all(Val::Px(20.0)),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let button_text_font = TextFont {
+        font_size: 25.0,
+        ..default()
+    };
+
+    commands
+        .spawn((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            GuessUI,
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn((
+                        Text::new("What's your guess: 0"),
+                        TextFont {
+                            font_size: 33.0,
+                            ..default()
+                        },
+                        TextColor(TEXT_COLOR),
+                        Node {
+                            margin: UiRect::all(Val::Px(50.0)),
+                            ..default()
+                        },
+                        Guess(0),
+                    ));
+
+                    parent
+                        .spawn((Node {
+                            flex_direction: FlexDirection::Row,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },))
+                        .with_children(|parent| {
+                            parent
+                                .spawn((
+                                    Button,
+                                    button_node.clone(),
+                                    BackgroundColor(DISABLED_BUTTON),
+                                    MatchButtonAction::RemoveGuess,
+                                    ButtonDisabled,
+                                    RemoveGuessButton,
+                                ))
+                                .with_children(|parent| {
+                                    parent.spawn((
+                                        Text::new("-"),
+                                        button_text_font.clone(),
+                                        TextColor(TEXT_COLOR),
+                                    ));
+                                });
+
+                            parent
+                                .spawn((
+                                    Button,
+                                    button_node.clone(),
+                                    BackgroundColor(NORMAL_BUTTON),
+                                    MatchButtonAction::AddGuess,
+                                    AddGuessButton,
+                                ))
+                                .with_children(|parent| {
+                                    parent.spawn((
+                                        Text::new("+"),
+                                        button_text_font.clone(),
+                                        TextColor(TEXT_COLOR),
+                                    ));
+                                });
+                        });
+
+                    parent
+                        .spawn((
+                            Button,
+                            button_node.clone(),
+                            BackgroundColor(NORMAL_BUTTON),
+                            MatchButtonAction::ConfirmGuess,
+                            ConfirmGuessButton,
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn((
+                                Text::new("GUESS!"),
+                                button_text_font.clone(),
+                                TextColor(TEXT_COLOR),
+                            ));
+                        });
+                });
+        });
 }
 
 pub fn pause_setup(mut commands: Commands) {

@@ -4,26 +4,17 @@ pub mod systems;
 
 use bevy::prelude::*;
 
-use crate::card_game::GameState;
+use crate::card_game::{game_logic_runner::MatchState, GameState};
 
 use super::despawn_screen;
-
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
-pub enum MatchState {
-    Paused,
-    Playing,
-    Finished,
-    #[default]
-    Disabled,
-}
 
 pub struct GameUIMatchPlugin;
 
 impl Plugin for GameUIMatchPlugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<MatchState>()
-            .add_systems(OnEnter(GameState::LocalGame), systems::match_setup)
-            .add_systems(OnEnter(MatchState::Playing), systems::match_ui_setup)
+        app
+            .add_systems(OnEnter(GameState::LocalGame), systems::match_ui_setup)
+            .add_systems(OnEnter(MatchState::Guessing), systems::guess_ui_setup)
             .add_systems(OnEnter(MatchState::Paused), systems::pause_setup)
             .add_systems(
                 Update,
@@ -32,6 +23,10 @@ impl Plugin for GameUIMatchPlugin {
             .add_systems(
                 OnExit(MatchState::Paused),
                 despawn_screen::<components::OnPauseScreen>,
+            )
+            .add_systems(
+                OnExit(MatchState::Guessing),
+                despawn_screen::<components::GuessUI>,
             )
             .add_systems(
                 OnExit(GameState::LocalGame),
