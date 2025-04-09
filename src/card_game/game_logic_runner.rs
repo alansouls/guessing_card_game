@@ -25,11 +25,12 @@ impl Plugin for GameLogicRunnerPlugin {
             .add_event::<GameEnded>()
             .add_event::<CardPlayed>()
             .add_event::<PlayerGuessed>()
-            .add_systems(OnEnter(GameState::LocalGame), systems::handle_game_start)
+            .add_systems(OnEnter(GameState::LocalGameInit), systems::handle_game_start)
             .add_systems(OnEnter(MatchState::Guessing), systems::spawn_cards)
             .add_systems(
                 Update,
-                (systems::handle_player_guess, systems::handle_card_played),
+                (systems::handle_player_guess, systems::handle_card_played)
+                    .run_if(in_state(GameState::LocalGame)),
             );
     }
 }

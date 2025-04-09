@@ -13,6 +13,7 @@ pub mod game_ui;
 pub enum GameState {
     #[default]
     Menu,
+    LocalGameInit,
     LocalGame,
     OnlineGame,
 }
@@ -42,7 +43,7 @@ impl Plugin for CardGamePlugin {
         app.init_state::<GameState>()
             .insert_resource(GameSettings::default())
             .insert_resource(LocalGameLogicRes(LocalGameLogic::default()))
-            .add_plugins(game_ui::GameUIPlugin)
-            .add_plugins(game_logic_runner::GameLogicRunnerPlugin);
+            .add_plugins(game_logic_runner::GameLogicRunnerPlugin)
+            .add_plugins(game_ui::GameUIPlugin);
     }
 }

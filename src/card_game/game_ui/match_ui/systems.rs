@@ -1,37 +1,23 @@
 use bevy::{
-    asset::Assets,
-    color::{Color, palettes::css::CRIMSON},
-    ecs::{
+    asset::Assets, color::{palettes::css::CRIMSON, Color}, ecs::{
         entity::Entity,
         event::EventWriter,
         query::{Added, Changed, With, Without},
         system::{Commands, Query, Res, ResMut, Single},
-    },
-    hierarchy::{BuildChildren, ChildBuild},
-    input::{ButtonInput, mouse::MouseButton},
-    math::{Vec2, primitives::Rectangle},
-    render::{
+    }, hierarchy::{BuildChildren, ChildBuild}, input::{mouse::MouseButton, ButtonInput}, math::{primitives::Rectangle, Vec2}, render::{
         camera::Camera,
         mesh::{Mesh, Mesh2d},
-    },
-    sprite::{ColorMaterial, MeshMaterial2d},
-    text::{TextColor, TextFont},
-    transform::components::{GlobalTransform, Transform},
-    ui::{
-        AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node,
-        PositionType, UiRect, Val,
-        widget::{Button, Text},
-    },
-    utils::default,
-    window::Window,
+    }, sprite::{ColorMaterial, MeshMaterial2d}, state::state::{NextState, State}, text::{TextColor, TextFont}, transform::components::{GlobalTransform, Transform}, ui::{
+        widget::{Button, Text}, AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node, PositionType, UiRect, Val
+    }, utils::default, window::Window
 };
 
 use crate::card_game::{
     game_logic_runner::{
-        components::{Card, CurrentPlayer, Guess},
-        events::PlayerGuessed,
+        components::{Card, CurrentPlayer, Guess, MaxGuess},
+        events::PlayerGuessed, MatchState,
     },
-    game_ui::{DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR, components::ButtonDisabled},
+    game_ui::{components::ButtonDisabled, DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR},
 };
 
 use super::components::{
@@ -66,7 +52,7 @@ pub fn add_cards_meshes(
 pub fn match_ui_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    current_player: Single<Entity, With<CurrentPlayer>>,
 ) {
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
@@ -74,7 +60,9 @@ pub fn match_ui_setup(
         MatchUI,
     ));
 
-    commands.spawn((
+    let mut entity = commands.entity(*current_player);
+
+    entity.insert((
         Text::new("Player 1's turn"),
         Node {
             position_type: PositionType::Absolute,
@@ -82,7 +70,6 @@ pub fn match_ui_setup(
             left: Val::Px(12.0),
             ..default()
         },
-        CurrentPlayer(0),
         MatchUI,
     ));
 }
@@ -372,6 +359,7 @@ pub fn handle_guess_action(
         (Changed<Interaction>, With<Button>),
     >,
     mut guess: Single<&mut Guess>,
+    current_player: Single<&CurrentPlayer>,
     mut player_guessed_events: EventWriter<PlayerGuessed>,
 ) {
     for (interaction, button_action, disabled) in &interaction_query {
@@ -389,11 +377,82 @@ pub fn handle_guess_action(
                 }
                 MatchButtonAction::ConfirmGuess => {
                     player_guessed_events.send(PlayerGuessed {
-                        player_id: guess.0,
+                        player_id: current_player.0,
                         guess: guess.0,
                     });
                 }
             }
         }
+    }
+}
+
+pub fn handle_guess_changed(
+    mut guess_changed_query: Query<
+        (
+            &Guess,
+            &mut Text
+        ),
+        Changed<Guess>>,
+) {
+    for (guess, mut text) in guess_changed_query.iter_mut() {
+        text.0 = format!("What's your guess: {}", guess.0);
+    }
+}
+
+
+pub fn enable_disable_add_guess_button(
+    mut commands: Commands,
+    max_guess: Single<&MaxGuess>,
+    guess_count_query: Query<&Guess, Changed<Guess>>,
+    mut add_player_button_query: Query<
+        (Entity, Option<&ButtonDisabled>, &AddGuessButton),
+        With<Button>,
+    >,
+) {
+    for guess_count in guess_count_query.iter() {
+        for (entity, disabled, _) in &mut add_player_button_query {
+            if guess_count.0 == max_guess.0 && disabled.is_none() {
+                commands.entity(entity).insert(ButtonDisabled);
+            } else if guess_count.0 < max_guess.0 && disabled.is_some() {
+                commands.entity(entity).remove::<ButtonDisabled>();
+            }
+        }
+    }
+}
+
+
+pub fn enable_disable_remove_guess_button(
+    mut commands: Commands,
+    guess_count_query: Query<&Guess, Changed<Guess>>,
+    mut add_player_button_query: Query<
+        (Entity, Option<&ButtonDisabled>, &RemoveGuessButton),
+        With<Button>,
+    >,
+) {
+    for guess_count in guess_count_query.iter() {
+        for (entity, disabled, _) in &mut add_player_button_query {
+            if guess_count.0 == 0 && disabled.is_none() {
+                commands.entity(entity).insert(ButtonDisabled);
+            } else if guess_count.0 > 0 && disabled.is_some() {
+                commands.entity(entity).remove::<ButtonDisabled>();
+            }
+        }
+    }
+}
+
+pub fn handle_current_player_changed(
+    mut current_player_query: Query<(&CurrentPlayer, &mut Text), Changed<CurrentPlayer>>,
+) {
+    for (current_player, mut text) in current_player_query.iter_mut() {
+        text.0 = format!("Player {}'s turn", current_player.0 + 1);
+    }
+}
+
+pub fn handle_guess_current_player_changed(
+    mut current_player_query: Query<&CurrentPlayer, Changed<CurrentPlayer>>,
+    mut guess: Single<&mut Guess>,
+) {
+    for _current_player in current_player_query.iter_mut() {
+        guess.0 = 0;
     }
 }

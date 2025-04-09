@@ -17,9 +17,24 @@ impl Plugin for GameUIMatchPlugin {
             .add_systems(OnEnter(MatchState::Paused), systems::pause_setup)
             .add_systems(
                 Update,
-                (systems::handle_guess_action).run_if(in_state(MatchState::Guessing)),
+                (
+                    systems::handle_guess_action,
+                    systems::enable_disable_add_guess_button,
+                    systems::enable_disable_remove_guess_button,
+                    systems::handle_guess_changed,
+                    systems::handle_guess_current_player_changed,
+                )
+                    .run_if(in_state(MatchState::Guessing)),
             )
-            .add_systems(Update, systems::add_cards_meshes)
+            .add_systems(
+                Update,
+                (
+                    systems::add_cards_meshes,
+                    systems::handle_current_player_changed,
+                )
+                    .chain()
+                    .run_if(in_state(GameState::LocalGame)),
+            )
             .add_systems(
                 Update,
                 (

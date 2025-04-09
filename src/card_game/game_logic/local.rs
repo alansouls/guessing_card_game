@@ -173,7 +173,7 @@ fn distribute_cards(game_logic: &mut LocalGameLogic) {
 impl GameLogic for LocalGameLogic {
     fn init(&mut self, player_count: usize, initial_card_count: usize) {
         self.player_turn = 0;
-        self.player_card_count = vec![initial_card_count; player_count]; // Assuming 4 players
+        self.player_card_count = vec![initial_card_count; player_count];
         self.game_over = false;
         self.wins = vec![0; player_count];
         self.player_cards = vec![Vec::new(); player_count];
@@ -189,13 +189,15 @@ impl GameLogic for LocalGameLogic {
         }
 
         let total_guesses = self.guesses.iter().sum::<usize>();
+        let max_cards = self.player_card_count.iter().max().unwrap_or(&0);
+        let next_player = (self.player_turn + 1) % self.player_card_count.len() as usize;
         if self.player_turn == player_id {
-            if total_guesses + guess == self.player_card_count.len() {
+            if total_guesses + guess == *max_cards && next_player == self.starting_turn {
                 return;
             }
 
             self.guesses[player_id as usize] = guess;
-            self.player_turn = (self.player_turn + 1) % self.player_card_count.len() as usize;
+            self.player_turn = next_player;
 
             if self.player_turn == self.starting_turn {
                 start_playing_round(self);

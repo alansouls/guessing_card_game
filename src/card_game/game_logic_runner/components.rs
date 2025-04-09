@@ -13,3 +13,6 @@ pub struct Card{
 
 #[derive(Component)]
 pub struct Guess(pub usize);
+
+#[derive(Component)]
+pub struct MaxGuess(pub usize);
