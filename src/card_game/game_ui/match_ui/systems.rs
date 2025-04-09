@@ -1,14 +1,15 @@
 use bevy::{
     asset::Assets,
-    color::{palettes::css::CRIMSON, Color},
+    color::{Color, palettes::css::CRIMSON},
     ecs::{
         entity::Entity,
-        query::{Added, With, Without},
+        event::EventWriter,
+        query::{Added, Changed, With, Without},
         system::{Commands, Query, Res, ResMut, Single},
     },
     hierarchy::{BuildChildren, ChildBuild},
-    input::{mouse::MouseButton, ButtonInput},
-    math::{primitives::Rectangle, Vec2},
+    input::{ButtonInput, mouse::MouseButton},
+    math::{Vec2, primitives::Rectangle},
     render::{
         camera::Camera,
         mesh::{Mesh, Mesh2d},
@@ -17,20 +18,26 @@ use bevy::{
     text::{TextColor, TextFont},
     transform::components::{GlobalTransform, Transform},
     ui::{
-        widget::{Button, Text}, AlignItems, BackgroundColor, FlexDirection, JustifyContent, Node, PositionType, UiRect, Val
+        AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node,
+        PositionType, UiRect, Val,
+        widget::{Button, Text},
     },
     utils::default,
     window::Window,
 };
 
 use crate::card_game::{
-    game_logic_runner::components::{Card, CurrentPlayer, Guess},
-    game_ui::{components::ButtonDisabled, DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR},
+    game_logic_runner::{
+        components::{Card, CurrentPlayer, Guess},
+        events::PlayerGuessed,
+    },
+    game_ui::{DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR, components::ButtonDisabled},
 };
 
 use super::components::{
-        AddGuessButton, CardSelected, ConfirmGuessButton, GuessUI, MatchButtonAction, MatchUI, OnPauseScreen, PauseButtonAction, RemoveGuessButton
-    };
+    AddGuessButton, CardSelected, ConfirmGuessButton, GuessUI, MatchButtonAction, MatchUI,
+    OnPauseScreen, PauseButtonAction, RemoveGuessButton,
+};
 
 const CARD_WIDTH: f32 = 125.0;
 const CARD_HEIGHT: f32 = 200.0;
@@ -42,7 +49,7 @@ pub fn add_cards_meshes(
     card_query: Query<Entity, Added<Card>>,
 ) {
     let mut inital_x = -300.0;
-    const SPACING : f32 = 20.0 + CARD_WIDTH;
+    const SPACING: f32 = 20.0 + CARD_WIDTH;
     for entity_id in card_query.iter() {
         println!("Adding meshes to: {:?}", entity_id);
         let mut entity = commands.entity(entity_id);
@@ -64,7 +71,7 @@ pub fn match_ui_setup(
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
         // MeshMaterial2d(materials.add(Color::WHITE)),
-        MatchUI
+        MatchUI,
     ));
 
     commands.spawn((
@@ -80,9 +87,7 @@ pub fn match_ui_setup(
     ));
 }
 
-pub fn guess_ui_setup(
-    mut commands: Commands
-) {
+pub fn guess_ui_setup(mut commands: Commands) {
     // Common style for all buttons on the screen
     let button_node = Node {
         width: Val::Px(300.0),
@@ -355,4 +360,40 @@ fn get_mouse_position(
     };
 
     Some(point)
+}
+
+pub fn handle_guess_action(
+    interaction_query: Query<
+        (
+            &Interaction,
+            &MatchButtonAction,
+            Option<&ButtonDisabled>
+        ),
+        (Changed<Interaction>, With<Button>),
+    >,
+    mut guess: Single<&mut Guess>,
+    mut player_guessed_events: EventWriter<PlayerGuessed>,
+) {
+    for (interaction, button_action, disabled) in &interaction_query {
+        if *interaction == Interaction::Pressed && disabled.is_none() {
+            match button_action {
+                MatchButtonAction::RemoveGuess => {
+                    if guess.0 > 0 {
+                        guess.0 -= 1;
+                    }
+                }
+                MatchButtonAction::AddGuess => {
+                    if guess.0 < 3 { //TODO: Change this to inital card count
+                        guess.0 += 1;
+                    }
+                }
+                MatchButtonAction::ConfirmGuess => {
+                    player_guessed_events.send(PlayerGuessed {
+                        player_id: guess.0,
+                        guess: guess.0,
+                    });
+                }
+            }
+        }
+    }
 }
