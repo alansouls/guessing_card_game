@@ -1,28 +1,47 @@
 use bevy::{
-    asset::Assets, color::{palettes::css::CRIMSON, Color}, ecs::{
+    asset::Assets,
+    color::{Color, palettes::css::CRIMSON},
+    ecs::{
         entity::Entity,
         event::EventWriter,
         query::{Added, Changed, With, Without},
         system::{Commands, Query, Res, ResMut, Single},
-    }, hierarchy::{BuildChildren, ChildBuild}, input::{mouse::MouseButton, ButtonInput}, math::{primitives::Rectangle, Vec2}, render::{
+    },
+    hierarchy::{BuildChildren, ChildBuild},
+    input::{ButtonInput, mouse::MouseButton},
+    math::{Vec2, primitives::Rectangle},
+    render::{
         camera::Camera,
         mesh::{Mesh, Mesh2d},
-    }, sprite::{ColorMaterial, MeshMaterial2d}, state::state::{NextState, State}, text::{TextColor, TextFont}, transform::components::{GlobalTransform, Transform}, ui::{
-        widget::{Button, Text}, AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node, PositionType, UiRect, Val
-    }, utils::default, window::Window
+    },
+    sprite::{ColorMaterial, Material2d, MeshMaterial2d},
+    state::state::{NextState, State},
+    text::{TextColor, TextFont, cosmic_text::Change},
+    transform::components::{GlobalTransform, Transform},
+    ui::{
+        AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node,
+        PositionType, UiRect, Val,
+        widget::{Button, Text},
+    },
+    utils::default,
+    window::Window,
 };
 
 use crate::card_game::{
     game_logic_runner::{
+        MatchState,
         components::{Card, CurrentPlayer, Guess, MaxGuess},
-        events::PlayerGuessed, MatchState,
+        events::PlayerGuessed,
     },
-    game_ui::{components::ButtonDisabled, DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR},
+    game_ui::{
+        DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR, components::ButtonDisabled,
+        match_ui::components::CardDisplay,
+    },
 };
 
 use super::components::{
     AddGuessButton, CardSelected, ConfirmGuessButton, GuessUI, MatchButtonAction, MatchUI,
-    OnPauseScreen, PauseButtonAction, RemoveGuessButton,
+    OnPauseScreen, PauseButtonAction, RemoveGuessButton, VisibleCard,
 };
 
 const CARD_WIDTH: f32 = 125.0;
@@ -31,35 +50,16 @@ const CARD_HEIGHT: f32 = 200.0;
 pub fn add_cards_meshes(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     card_query: Query<Entity, Added<Card>>,
 ) {
-    let mut inital_x = -300.0;
-    const SPACING: f32 = 20.0 + CARD_WIDTH;
     for entity_id in card_query.iter() {
-        println!("Adding meshes to: {:?}", entity_id);
         let mut entity = commands.entity(entity_id);
 
-        entity.insert((
-            Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
-            MeshMaterial2d(materials.add(Color::WHITE)),
-            Transform::from_xyz(inital_x, -200.0, 0.0),
-            inital_x += SPACING,
-        ));
+        entity.insert(Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))));
     }
 }
 
-pub fn match_ui_setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    current_player: Single<Entity, With<CurrentPlayer>>,
-) {
-    commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))),
-        // MeshMaterial2d(materials.add(Color::WHITE)),
-        MatchUI,
-    ));
-
+pub fn match_ui_setup(mut commands: Commands, current_player: Single<Entity, With<CurrentPlayer>>) {
     let mut entity = commands.entity(*current_player);
 
     entity.insert((
@@ -267,6 +267,49 @@ pub fn pause_setup(mut commands: Commands) {
         });
 }
 
+pub fn display_player_cards(
+    mut commands: Commands,
+    current_player_query: Query<&CurrentPlayer, Changed<CurrentPlayer>>,
+    visible_cards_query: Query<(Entity, &Card), With<VisibleCard>>,
+    hidden_cards_query: Query<(Entity, &Card), Without<VisibleCard>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let mut inital_x = -300.0;
+    const SPACING: f32 = 20.0 + CARD_WIDTH;
+    for current_player in current_player_query.iter() {
+        for (entity_id, card) in hidden_cards_query.iter() {
+            match card.player_id {
+                Some(card_player_id) => {
+                    let mut entity = commands.entity(entity_id);
+        
+                    if card_player_id == current_player.0 {
+                        entity.insert(CardDisplay {
+                            mesh_material: MeshMaterial2d(materials.add(Color::WHITE)),
+                            transform: Transform::from_xyz(inital_x, -200.0, 0.0),
+                            visible: VisibleCard,
+                        });
+                        inital_x += SPACING;
+                    }
+                }
+                None => continue,
+            }
+        }
+
+        for (entity_id, card) in visible_cards_query.iter() {
+            match card.player_id {
+                Some(card_player_id) => {
+                    let mut entity = commands.entity(entity_id);
+        
+                    if card_player_id != current_player.0 {
+                        entity.remove::<CardDisplay>();
+                    }
+                }
+                None => continue,
+            }
+        }
+    }
+}
+
 pub fn select_card(
     mut commands: Commands,
     camera_query: Single<(&Camera, &GlobalTransform)>,
@@ -351,11 +394,7 @@ fn get_mouse_position(
 
 pub fn handle_guess_action(
     interaction_query: Query<
-        (
-            &Interaction,
-            &MatchButtonAction,
-            Option<&ButtonDisabled>
-        ),
+        (&Interaction, &MatchButtonAction, Option<&ButtonDisabled>),
         (Changed<Interaction>, With<Button>),
     >,
     mut guess: Single<&mut Guess>,
@@ -371,7 +410,8 @@ pub fn handle_guess_action(
                     }
                 }
                 MatchButtonAction::AddGuess => {
-                    if guess.0 < 3 { //TODO: Change this to inital card count
+                    if guess.0 < 3 {
+                        //TODO: Change this to inital card count
                         guess.0 += 1;
                     }
                 }
@@ -386,19 +426,11 @@ pub fn handle_guess_action(
     }
 }
 
-pub fn handle_guess_changed(
-    mut guess_changed_query: Query<
-        (
-            &Guess,
-            &mut Text
-        ),
-        Changed<Guess>>,
-) {
+pub fn handle_guess_changed(mut guess_changed_query: Query<(&Guess, &mut Text), Changed<Guess>>) {
     for (guess, mut text) in guess_changed_query.iter_mut() {
         text.0 = format!("What's your guess: {}", guess.0);
     }
 }
-
 
 pub fn enable_disable_add_guess_button(
     mut commands: Commands,
@@ -419,7 +451,6 @@ pub fn enable_disable_add_guess_button(
         }
     }
 }
-
 
 pub fn enable_disable_remove_guess_button(
     mut commands: Commands,

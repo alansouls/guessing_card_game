@@ -38,10 +38,12 @@ impl Plugin for GameUIMatchPlugin {
             .add_systems(
                 Update,
                 (
+                    systems::display_player_cards,
                     systems::select_card,
                     systems::unselect_card,
                     systems::move_card,
                 )
+                    .chain()
                     .run_if(in_state(MatchState::Playing)),
             )
             .add_systems(
