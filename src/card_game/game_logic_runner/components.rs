@@ -6,9 +6,10 @@ use crate::card_game::game_logic;
 pub struct CurrentPlayer(pub usize);
 
 #[derive(Component)]
-pub struct Card{
+pub struct Card {
     pub player_id: Option<usize>,
-    pub card: game_logic::common::Card
+    pub card_index: Option<usize>,
+    pub card: game_logic::common::Card,
 }
 
 #[derive(Component)]

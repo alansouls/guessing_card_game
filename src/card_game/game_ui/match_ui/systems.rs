@@ -1,27 +1,26 @@
 use bevy::{
-    asset::Assets,
-    color::{Color, palettes::css::CRIMSON},
+    asset::{AssetServer, Assets},
+    color::{palettes::css::{CRIMSON, YELLOW}, Color},
     ecs::{
         entity::Entity,
         event::EventWriter,
-        query::{Added, Changed, With, Without},
+        query::{Changed, With, Without},
         system::{Commands, Query, Res, ResMut, Single},
     },
     hierarchy::{BuildChildren, ChildBuild},
-    input::{ButtonInput, mouse::MouseButton},
-    math::{Vec2, primitives::Rectangle},
+    input::{mouse::MouseButton, ButtonInput},
+    math::{
+        primitives::{Annulus, Circle}, Vec2
+    },
     render::{
         camera::Camera,
         mesh::{Mesh, Mesh2d},
     },
-    sprite::{ColorMaterial, Material2d, MeshMaterial2d},
-    state::state::{NextState, State},
-    text::{TextColor, TextFont, cosmic_text::Change},
+    sprite::{ColorMaterial, MeshMaterial2d},
+    text::{TextColor, TextFont},
     transform::components::{GlobalTransform, Transform},
     ui::{
-        AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node,
-        PositionType, UiRect, Val,
-        widget::{Button, Text},
+        widget::{Button, Text}, AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node, PositionType, UiRect, Val
     },
     utils::default,
     window::Window,
@@ -29,35 +28,22 @@ use bevy::{
 
 use crate::card_game::{
     game_logic_runner::{
-        MatchState,
         components::{Card, CurrentPlayer, Guess, MaxGuess},
-        events::PlayerGuessed,
+        events::{CardPlayed, PlayerGuessed},
     },
     game_ui::{
-        DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR, components::ButtonDisabled,
-        match_ui::components::CardDisplay,
+        DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR, asset_loader::AssetLoader,
+        components::ButtonDisabled, match_ui::components::CardDisplay,
     },
 };
 
 use super::components::{
     AddGuessButton, CardSelected, ConfirmGuessButton, GuessUI, MatchButtonAction, MatchUI,
-    OnPauseScreen, PauseButtonAction, RemoveGuessButton, VisibleCard,
+    OnPauseScreen, PauseButtonAction, PlayArea, PlayAreaBundle, RemoveGuessButton, VisibleCard,
 };
 
-const CARD_WIDTH: f32 = 125.0;
-const CARD_HEIGHT: f32 = 200.0;
-
-pub fn add_cards_meshes(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    card_query: Query<Entity, Added<Card>>,
-) {
-    for entity_id in card_query.iter() {
-        let mut entity = commands.entity(entity_id);
-
-        entity.insert(Mesh2d(meshes.add(Rectangle::new(CARD_WIDTH, CARD_HEIGHT))));
-    }
-}
+const CARD_WIDTH: f32 = 130.0;
+const CARD_HEIGHT: f32 = 202.0;
 
 pub fn match_ui_setup(mut commands: Commands, current_player: Single<Entity, With<CurrentPlayer>>) {
     let mut entity = commands.entity(*current_player);
@@ -272,7 +258,7 @@ pub fn display_player_cards(
     current_player_query: Query<&CurrentPlayer, Changed<CurrentPlayer>>,
     visible_cards_query: Query<(Entity, &Card), With<VisibleCard>>,
     hidden_cards_query: Query<(Entity, &Card), Without<VisibleCard>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     let mut inital_x = -300.0;
     const SPACING: f32 = 20.0 + CARD_WIDTH;
@@ -281,10 +267,10 @@ pub fn display_player_cards(
             match card.player_id {
                 Some(card_player_id) => {
                     let mut entity = commands.entity(entity_id);
-        
+
                     if card_player_id == current_player.0 {
                         entity.insert(CardDisplay {
-                            mesh_material: MeshMaterial2d(materials.add(Color::WHITE)),
+                            sprite: asset_server.load_card_sprite(&card.card),
                             transform: Transform::from_xyz(inital_x, -200.0, 0.0),
                             visible: VisibleCard,
                         });
@@ -299,7 +285,7 @@ pub fn display_player_cards(
             match card.player_id {
                 Some(card_player_id) => {
                     let mut entity = commands.entity(entity_id);
-        
+
                     if card_player_id != current_player.0 {
                         entity.remove::<CardDisplay>();
                     }
@@ -334,21 +320,40 @@ pub fn select_card(
                 continue;
             }
 
-            entity.insert(CardSelected);
+            entity.insert((CardSelected {
+                inital_card_position: (transform.translation.x, transform.translation.y),
+            },));
         }
     }
 }
 
 pub fn unselect_card(
     mut commands: Commands,
+    current_player: Single<&CurrentPlayer>,
     buttons: Res<ButtonInput<MouseButton>>,
-    card_query: Query<Entity, With<CardSelected>>,
+    mut card_query: Query<(Entity, &mut Transform, &CardSelected, &Card), With<CardSelected>>,
+    play_area_query: Query<&PlayArea>,
+    mut play_events: EventWriter<CardPlayed>,
 ) {
     if buttons.just_released(MouseButton::Left) {
-        for entity_id in card_query.iter() {
+        for (entity_id, mut transform, card_selected, card) in card_query.iter_mut() {
             let mut entity = commands.entity(entity_id);
 
             entity.remove::<CardSelected>();
+
+            let play_area = play_area_query.single();
+
+            if (transform.translation.x > -play_area.0 && transform.translation.x < play_area.0)
+                && (transform.translation.y > -play_area.0 && transform.translation.y < play_area.0)
+            {
+                play_events.send(CardPlayed {
+                    player_id: current_player.0,
+                    card_index: card.card_index.unwrap(),
+                });
+            } else {
+                transform.translation.x = card_selected.inital_card_position.0;
+                transform.translation.y = card_selected.inital_card_position.1;
+            }
         }
     }
 }
@@ -485,5 +490,43 @@ pub fn handle_guess_current_player_changed(
 ) {
     for _current_player in current_player_query.iter_mut() {
         guess.0 = 0;
+    }
+}
+
+pub fn setup_play_area(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    const RADIUS: f32 = 30.0;
+    commands.spawn(PlayAreaBundle {
+        mesh: Mesh2d(meshes.add(Annulus::new(RADIUS - 2.0, RADIUS))),
+        mesh_material: MeshMaterial2d(materials.add(Color::from(CRIMSON))),
+        transform: Transform::from_xyz(0.0, 0.0, 2.0),
+        play_area: PlayArea(RADIUS),
+    });
+}
+
+pub fn highlight_play_area(
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut play_area_query: Query<(&PlayArea, &mut MeshMaterial2d<ColorMaterial>)>,
+    selected_card: Query<&Transform, With<CardSelected>>,
+) {
+    for (play_area, mut mesh_material) in play_area_query.iter_mut() {
+        let color_material = materials.get_mut(mesh_material.0.id()).unwrap();
+        match selected_card.get_single() {
+            Ok(transform) => {
+                if (transform.translation.x > -play_area.0 && transform.translation.x < play_area.0)
+                    && (transform.translation.y > -play_area.0 && transform.translation.y < play_area.0)
+                {
+                    color_material.color = Color::from(YELLOW);
+                } else {
+                    color_material.color = Color::from(CRIMSON);
+                }
+            }
+            Err(_) => {
+                color_material.color = Color::from(CRIMSON);
+            }
+        }
     }
 }

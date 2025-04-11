@@ -93,10 +93,10 @@ fn update_current_player(
 pub fn spawn_cards(mut commands: Commands, game_logic: Res<LocalGameLogicRes>) {
     for player_id in 0..game_logic.0.player_card_count.len() {
         let cards = game_logic.0.get_player_cards(player_id as usize);
-        for card in cards {
-            println!("Spawning card: {:?}", card);
+        for (i, card) in cards.iter().enumerate() {
             commands.spawn(components::Card {
                 player_id: Some(player_id as usize),
+                card_index: Some(i),
                 card: card.clone(),
             });
         }

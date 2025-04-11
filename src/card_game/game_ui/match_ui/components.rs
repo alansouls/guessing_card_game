@@ -1,14 +1,14 @@
 use bevy::{
-    ecs::{bundle::Bundle, component::Component},
-    sprite::{ColorMaterial, MeshMaterial2d},
-    transform::components::Transform,
+    ecs::{bundle::Bundle, component::Component}, render::mesh::Mesh2d, sprite::{ColorMaterial, Material2d, MeshMaterial2d, Sprite}, transform::components::Transform
 };
 
 #[derive(Component)]
 pub struct MatchUI;
 
 #[derive(Component)]
-pub struct CardSelected;
+pub struct CardSelected {
+    pub inital_card_position: (f32, f32),
+}
 
 #[derive(Component)]
 pub struct OnPauseScreen;
@@ -43,7 +43,18 @@ pub struct VisibleCard;
 
 #[derive(Bundle)]
 pub struct CardDisplay {
-    pub mesh_material: MeshMaterial2d<ColorMaterial>,
+    pub sprite: Sprite,
     pub transform: Transform,
     pub visible: VisibleCard,
+}
+
+#[derive(Component)]
+pub struct PlayArea(pub f32);
+
+#[derive(Bundle)]
+pub struct PlayAreaBundle {
+    pub mesh: Mesh2d,
+    pub mesh_material: MeshMaterial2d<ColorMaterial>,
+    pub transform: Transform,
+    pub play_area: PlayArea,
 }

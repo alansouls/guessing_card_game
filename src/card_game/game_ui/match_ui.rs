@@ -15,6 +15,7 @@ impl Plugin for GameUIMatchPlugin {
         app.add_systems(OnEnter(GameState::LocalGame), systems::match_ui_setup)
             .add_systems(OnEnter(MatchState::Guessing), systems::guess_ui_setup)
             .add_systems(OnEnter(MatchState::Paused), systems::pause_setup)
+            .add_systems(OnEnter(MatchState::Playing), systems::setup_play_area)
             .add_systems(
                 Update,
                 (
@@ -28,10 +29,7 @@ impl Plugin for GameUIMatchPlugin {
             )
             .add_systems(
                 Update,
-                (
-                    systems::add_cards_meshes,
-                    systems::handle_current_player_changed,
-                )
+                (systems::handle_current_player_changed,)
                     .chain()
                     .run_if(in_state(GameState::LocalGame)),
             )
@@ -42,6 +40,7 @@ impl Plugin for GameUIMatchPlugin {
                     systems::select_card,
                     systems::unselect_card,
                     systems::move_card,
+                    systems::highlight_play_area,
                 )
                     .chain()
                     .run_if(in_state(MatchState::Playing)),
