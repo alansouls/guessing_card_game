@@ -1,5 +1,7 @@
 use bevy::ecs::event::Event;
 
+use crate::card_game::game_logic::common::Card;
+
 #[derive(Event)]
 pub struct GameEnded {
     pub winner: usize,
@@ -14,5 +16,5 @@ pub struct PlayerGuessed {
 #[derive(Event)]
 pub struct CardPlayed {
     pub player_id: usize,
-    pub card_index: usize,
+    pub card: Card,
 }

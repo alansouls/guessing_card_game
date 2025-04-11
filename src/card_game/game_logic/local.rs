@@ -170,6 +170,21 @@ fn distribute_cards(game_logic: &mut LocalGameLogic) {
     }
 }
 
+fn push_played_card(game_logic: &mut LocalGameLogic, card: &PlayedCard) {
+    match game_logic.cards_played.pop() {
+        Some(last_card) => {
+            if last_card.card > card.card {
+                game_logic.cards_played.push(*card);
+                game_logic.cards_played.push(last_card);
+            } else {
+                game_logic.cards_played.push(last_card);
+                game_logic.cards_played.push(*card);
+            }
+        }
+        _ => game_logic.cards_played.push(*card),
+    }
+}
+
 impl GameLogic for LocalGameLogic {
     fn init(&mut self, player_count: usize, initial_card_count: usize) {
         self.player_turn = 0;
@@ -205,24 +220,37 @@ impl GameLogic for LocalGameLogic {
         }
     }
 
-    fn play_card(&mut self, player_id: usize, card_index: usize) {
+    fn play_card(&mut self, player_id: usize, card: &Card) -> Result<(), String> {
         if self.game_over {
-            return;
+            return Err(String::from("Game is over"));
         }
 
         if self.guessing_round || self.player_turn != player_id {
-            return;
+            return Err(String::from("Guessing round or not your turn"));
         }
 
-        if card_index >= self.player_cards[player_id as usize].len() {
-            return;
-        }
+        match self.player_cards[player_id as usize]
+            .iter()
+            .position(|c| *c == *card)
+        {
+            Some(index) => {
+                self.player_cards[player_id as usize].remove(index);
 
-        if card_index < self.player_cards[player_id as usize].len() {
-            let card = self.player_cards[player_id as usize].remove(card_index);
-            self.cards_played.push(PlayedCard { player_id, card });
+                push_played_card(
+                    self,
+                    &PlayedCard {
+                        player_id: player_id as usize,
+                        card: *card,
+                    },
+                );
 
-            next_player_turn(self);
+                next_player_turn(self);
+
+                println!("Cards Played{:?}", self.cards_played);
+
+                Ok(())
+            }
+            None => return Err(String::from("Player does not have this card")),
         }
     }
 

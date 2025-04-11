@@ -10,7 +10,7 @@ use bevy::{
     hierarchy::{BuildChildren, ChildBuild},
     input::{mouse::MouseButton, ButtonInput},
     math::{
-        primitives::{Annulus, Circle}, Vec2
+        primitives::Annulus, Vec2
     },
     render::{
         camera::Camera,
@@ -348,7 +348,7 @@ pub fn unselect_card(
             {
                 play_events.send(CardPlayed {
                     player_id: current_player.0,
-                    card_index: card.card_index.unwrap(),
+                    card: card.card
                 });
             } else {
                 transform.translation.x = card_selected.inital_card_position.0;
@@ -512,7 +512,7 @@ pub fn highlight_play_area(
     mut play_area_query: Query<(&PlayArea, &mut MeshMaterial2d<ColorMaterial>)>,
     selected_card: Query<&Transform, With<CardSelected>>,
 ) {
-    for (play_area, mut mesh_material) in play_area_query.iter_mut() {
+    for (play_area, mesh_material) in play_area_query.iter_mut() {
         let color_material = materials.get_mut(mesh_material.0.id()).unwrap();
         match selected_card.get_single() {
             Ok(transform) => {
