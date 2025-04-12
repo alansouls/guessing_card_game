@@ -246,8 +246,6 @@ impl GameLogic for LocalGameLogic {
 
                 next_player_turn(self);
 
-                println!("Cards Played{:?}", self.cards_played);
-
                 Ok(())
             }
             None => return Err(String::from("Player does not have this card")),

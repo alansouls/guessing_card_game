@@ -91,8 +91,6 @@ fn update_current_player(
 ) {
     let current_player_id = game_logic.0.get_player_turn();
 
-    println!("Current player: {:?}", current_player_id);
-
     if current_player_id != current_player.0 {
         current_player.0 = current_player_id;
     }

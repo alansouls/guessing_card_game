@@ -1,6 +1,9 @@
 use bevy::{
     asset::{AssetServer, Assets},
-    color::{palettes::css::{CRIMSON, YELLOW}, Color},
+    color::{
+        Color,
+        palettes::css::{CRIMSON, YELLOW},
+    },
     ecs::{
         entity::Entity,
         event::EventWriter,
@@ -8,10 +11,8 @@ use bevy::{
         system::{Commands, Query, Res, ResMut, Single},
     },
     hierarchy::{BuildChildren, ChildBuild},
-    input::{mouse::MouseButton, ButtonInput},
-    math::{
-        primitives::Annulus, Vec2
-    },
+    input::{ButtonInput, mouse::MouseButton},
+    math::{Vec2, primitives::Annulus},
     render::{
         camera::Camera,
         mesh::{Mesh, Mesh2d},
@@ -20,7 +21,9 @@ use bevy::{
     text::{TextColor, TextFont},
     transform::components::{GlobalTransform, Transform},
     ui::{
-        widget::{Button, Text}, AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node, PositionType, UiRect, Val
+        AlignItems, BackgroundColor, FlexDirection, Interaction, JustifyContent, Node,
+        PositionType, UiRect, Val,
+        widget::{Button, Text},
     },
     utils::default,
     window::Window,
@@ -28,7 +31,7 @@ use bevy::{
 
 use crate::card_game::{
     game_logic_runner::{
-        components::{Card, CurrentPlayer, Guess, MaxGuess},
+        components::{Card, CurrentPlayer, Guess, MaxGuess, TopPlayedCard},
         events::{CardPlayed, PlayerGuessed},
     },
     game_ui::{
@@ -309,7 +312,10 @@ pub fn select_card(
     };
 
     if buttons.just_pressed(MouseButton::Left) {
-        for (entity_id, _, transform) in card_query.iter() {
+        for (entity_id, _, transform) in card_query
+            .iter()
+            .filter(|(_, card, _)| card.player_id.is_some())
+        {
             let mut entity = commands.entity(entity_id);
 
             if point.x < transform.translation.x - CARD_WIDTH / 2.0
@@ -348,7 +354,7 @@ pub fn unselect_card(
             {
                 play_events.send(CardPlayed {
                     player_id: current_player.0,
-                    card: card.card
+                    card: card.card,
                 });
             } else {
                 transform.translation.x = card_selected.inital_card_position.0;
@@ -502,7 +508,7 @@ pub fn setup_play_area(
     commands.spawn(PlayAreaBundle {
         mesh: Mesh2d(meshes.add(Annulus::new(RADIUS - 2.0, RADIUS))),
         mesh_material: MeshMaterial2d(materials.add(Color::from(CRIMSON))),
-        transform: Transform::from_xyz(0.0, 0.0, 2.0),
+        transform: Transform::from_xyz(0.0, 0.0, 20.0),
         play_area: PlayArea(RADIUS),
     });
 }
@@ -517,7 +523,8 @@ pub fn highlight_play_area(
         match selected_card.get_single() {
             Ok(transform) => {
                 if (transform.translation.x > -play_area.0 && transform.translation.x < play_area.0)
-                    && (transform.translation.y > -play_area.0 && transform.translation.y < play_area.0)
+                    && (transform.translation.y > -play_area.0
+                        && transform.translation.y < play_area.0)
                 {
                     color_material.color = Color::from(YELLOW);
                 } else {
@@ -528,5 +535,24 @@ pub fn highlight_play_area(
                 color_material.color = Color::from(CRIMSON);
             }
         }
+    }
+}
+
+pub fn adjust_top_played_card(
+    mut top_played_card_query: Query<&mut Transform, Changed<TopPlayedCard>>,
+    mut card_query: Query<(&Card, &mut Transform), Without<TopPlayedCard>>,
+) {
+    match top_played_card_query.get_single_mut() {
+        Ok(mut top_played_card) => {
+            top_played_card.translation.z = 10.0;
+            for (card, mut transform) in card_query.iter_mut() {
+                if card.player_id.is_some() {
+                    continue;
+                }
+
+                transform.translation.z = 0.0;
+            }
+        }
+        Err(_) => return,
     }
 }
