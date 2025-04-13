@@ -1,9 +1,9 @@
 use bevy::color::palettes::css::CRIMSON;
 use bevy::prelude::*;
 
-use crate::card_game::game_ui::components::ButtonDisabled;
 use crate::card_game::game_ui::DISABLED_TEXT_COLOR;
-use crate::card_game::GameState;
+use crate::card_game::game_ui::components::ButtonDisabled;
+use crate::card_game::{GameSettings, GameState};
 
 const MIN_PLAYERS: usize = 2;
 const MAX_PLAYERS: usize = 8;
@@ -254,6 +254,8 @@ pub fn menu_action(
     mut remove_player_events: EventWriter<RemovePlayer>,
     mut menu_state: ResMut<NextState<MenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
+    mut game_settings: ResMut<GameSettings>,
+    player_count_query: Query<&NumberOfLocalPLayers>,
 ) {
     for (interaction, menu_button_action, disabled) in &interaction_query {
         if *interaction == Interaction::Pressed && disabled.is_none() {
@@ -264,6 +266,7 @@ pub fn menu_action(
                 MenuButtonAction::PlayLocalGame => menu_state.set(MenuState::LocalGame),
                 MenuButtonAction::PlayOnlineGame => menu_state.set(MenuState::OnlineGame),
                 MenuButtonAction::ConfirmLocalGame => {
+                    game_settings.player_count = player_count_query.single().0;
                     menu_state.set(MenuState::Disabled);
                     game_state.set(GameState::LocalGameInit);
                 }
