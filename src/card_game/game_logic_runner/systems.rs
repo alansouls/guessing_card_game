@@ -22,7 +22,7 @@ use crate::card_game::{
 use super::{
     MatchState,
     components::{self, CurrentPlayer, DisplayPlayedCardTimer, MaxGuess, TopPlayedCard},
-    events::{CardPlayed, GameEnded, PlayerGuessed},
+    events::{CardPlayed, GameEnded, PlayerGuessed, PlayerInfoUpdated},
 };
 
 pub fn handle_game_start(
@@ -49,6 +49,7 @@ pub fn handle_player_guess(
     mut event: EventReader<PlayerGuessed>,
     mut current_player: Single<&mut CurrentPlayer>,
     mut match_state: ResMut<NextState<MatchState>>,
+    mut player_info_event: EventWriter<PlayerInfoUpdated>,
 ) {
     for event in event.read() {
         match game_logic.0.set_guess(event.player_id, event.guess) {
@@ -60,6 +61,8 @@ pub fn handle_player_guess(
                     current_player.as_mut(),
                     match_state.as_mut(),
                 );
+
+                player_info_event.send(PlayerInfoUpdated);
             }
             Err(_) => (),
         }
@@ -75,6 +78,7 @@ pub fn handle_card_played(
     mut match_state: ResMut<NextState<MatchState>>,
     mut cards: Query<(Entity, &mut components::Card)>,
     top_card: Option<Single<Entity, With<TopPlayedCard>>>,
+    mut player_info_event: EventWriter<PlayerInfoUpdated>,
 ) {
     let mapped_top_card = top_card.map(|t| *t);
     for event in event.read() {
@@ -96,6 +100,7 @@ pub fn handle_card_played(
                     current_player.as_mut(),
                     match_state.as_mut(),
                 );
+                player_info_event.send(PlayerInfoUpdated);
             }
             Ok(CardPlayedResult::NextTurn) | Ok(CardPlayedResult::NextMatch) => {
                 define_card_as_played(
@@ -114,6 +119,7 @@ pub fn handle_card_played(
                     current_player.as_mut(),
                     match_state.as_mut(),
                 );
+                player_info_event.send(PlayerInfoUpdated);
             }
             Ok(CardPlayedResult::GameOver) => {
                 define_card_as_played(
@@ -124,6 +130,7 @@ pub fn handle_card_played(
                     &mut cards,
                     &mapped_top_card,
                 );
+                player_info_event.send(PlayerInfoUpdated);
 
                 let winner = game_logic.0.get_winner();
                 game_ended_writer.send(GameEnded { winner });
@@ -153,7 +160,7 @@ pub fn clear_cards(
     display_played_card_timer: Option<Single<(Entity, &mut DisplayPlayedCardTimer)>>,
     mut cards: Query<Entity, With<components::Card>>,
     mut match_state: ResMut<NextState<MatchState>>,
-    mut current_player: Single<&mut CurrentPlayer>
+    mut current_player: Single<&mut CurrentPlayer>,
 ) {
     if display_played_card_timer.is_none() {
         return;
@@ -231,6 +238,46 @@ fn define_card_as_played(
                 if let Some(top_card_entity) = top_card {
                     commands.entity(*top_card_entity).remove::<TopPlayedCard>();
                 }
+            }
+        }
+    }
+}
+
+pub fn setup_player_infos(mut commands: Commands, game_logic: Res<LocalGameLogicRes>) {
+    for player_id in 0..game_logic.0.player_card_count.len() {
+        let card_count = game_logic.0.get_player_cards(player_id).len();
+        let guess = game_logic.0.get_player_guess(player_id);
+        let wins = game_logic.0.get_player_wins(player_id);
+
+        commands.spawn(components::PlayerInfo {
+            player_id,
+            card_count,
+            guess,
+            wins,
+        });
+    }
+}
+
+pub fn update_player_infos(
+    mut event: EventReader<PlayerInfoUpdated>,
+    game_logic: Res<LocalGameLogicRes>,
+    mut player_info_query: Query<&mut components::PlayerInfo>,
+) {
+    for _ in event.read() {
+        for mut player_info in player_info_query.iter_mut() {
+            let player_id = player_info.player_id;
+            
+            let card_count = game_logic.0.get_player_cards(player_id).len();
+            let guess = game_logic.0.get_player_guess(player_id);
+            let wins = game_logic.0.get_player_wins(player_id);
+
+            if player_info.card_count != card_count
+                || player_info.guess != guess
+                || player_info.wins != wins
+            {
+                player_info.card_count = card_count;
+                player_info.guess = guess;
+                player_info.wins = wins;
             }
         }
     }

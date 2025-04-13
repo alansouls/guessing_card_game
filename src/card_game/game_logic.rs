@@ -11,5 +11,6 @@ pub trait GameLogic {
     fn get_player_card_count(&self, player_id: usize) -> usize;
     fn get_player_turn(&self) -> usize;
     fn get_player_guess(&self, player_id: usize) -> usize;
+    fn get_player_wins(&self, player_id: usize) -> usize;
     fn get_winner(&self) -> usize;
 }

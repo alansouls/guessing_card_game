@@ -7,7 +7,7 @@ use bevy::{
     ecs::{
         entity::Entity,
         event::EventWriter,
-        query::{Changed, With, Without},
+        query::{Added, Changed, With, Without},
         system::{Commands, Query, Res, ResMut, Single},
     },
     hierarchy::{BuildChildren, ChildBuild},
@@ -31,7 +31,7 @@ use bevy::{
 
 use crate::card_game::{
     game_logic_runner::{
-        components::{Card, CurrentPlayer, Guess, MaxGuess, TopPlayedCard},
+        components::{Card, CurrentPlayer, Guess, MaxGuess, PlayerInfo, TopPlayedCard},
         events::{CardPlayed, PlayerGuessed},
     },
     game_ui::{
@@ -42,7 +42,8 @@ use crate::card_game::{
 
 use super::components::{
     AddGuessButton, CardSelected, ConfirmGuessButton, GuessUI, MatchButtonAction, MatchUI,
-    OnPauseScreen, PauseButtonAction, PlayArea, PlayAreaBundle, RemoveGuessButton, VisibleCard,
+    OnPauseScreen, PauseButtonAction, PlayArea, PlayAreaBundle, PlayerInfoUI, RemoveGuessButton,
+    VisibleCard,
 };
 
 const CARD_WIDTH: f32 = 130.0;
@@ -300,14 +301,10 @@ pub fn display_player_cards(
 }
 
 // Helper function to check if a point is within the play area
-fn is_point_in_play_area(
-    point: Vec2,
-    play_area_radius: f32,
-    play_area_position: Vec2,
-) -> bool {
+fn is_point_in_play_area(point: Vec2, play_area_radius: f32, play_area_position: Vec2) -> bool {
     let relative_x = point.x - play_area_position.x;
     let relative_y = point.y - play_area_position.y;
-    
+
     (relative_x > -play_area_radius && relative_x < play_area_radius)
         && (relative_y > -play_area_radius && relative_y < play_area_radius)
 }
@@ -361,7 +358,10 @@ pub fn unselect_card(
 
             let (play_area, play_area_transform) = play_area_query.single();
             let card_position = Vec2::new(transform.translation.x, transform.translation.y);
-            let play_area_position = Vec2::new(play_area_transform.translation.x, play_area_transform.translation.y);
+            let play_area_position = Vec2::new(
+                play_area_transform.translation.x,
+                play_area_transform.translation.y,
+            );
 
             if is_point_in_play_area(card_position, play_area.0, play_area_position) {
                 play_events.send(CardPlayed {
@@ -521,7 +521,7 @@ pub fn setup_play_area(
     if existing_play_area.is_some() {
         return;
     }
-    
+
     let window = windows.single();
     let height = window.height();
 
@@ -529,7 +529,7 @@ pub fn setup_play_area(
     commands.spawn(PlayAreaBundle {
         mesh: Mesh2d(meshes.add(Annulus::new(RADIUS - 2.0, RADIUS))),
         mesh_material: MeshMaterial2d(materials.add(Color::from(CRIMSON))),
-        transform: Transform::from_xyz(0.0 , 0.0 + height / 4.0, 20.0),
+        transform: Transform::from_xyz(0.0, 0.0 + height / 4.0, 20.0),
         play_area: PlayArea(RADIUS),
     });
 }
@@ -543,9 +543,13 @@ pub fn highlight_play_area(
         let color_material = materials.get_mut(mesh_material.0.id()).unwrap();
         match selected_card.get_single() {
             Ok(card_transform) => {
-                let card_position = Vec2::new(card_transform.translation.x, card_transform.translation.y);
-                let play_area_position = Vec2::new(play_area_transform.translation.x, play_area_transform.translation.y);
-                
+                let card_position =
+                    Vec2::new(card_transform.translation.x, card_transform.translation.y);
+                let play_area_position = Vec2::new(
+                    play_area_transform.translation.x,
+                    play_area_transform.translation.y,
+                );
+
                 if is_point_in_play_area(card_position, play_area.0, play_area_position) {
                     color_material.color = Color::from(YELLOW);
                 } else {
@@ -575,5 +579,69 @@ pub fn adjust_top_played_card(
             }
         }
         Err(_) => return,
+    }
+}
+
+pub fn player_info_ui_setup(
+    mut commands: Commands,
+    player_info_query: Query<&PlayerInfo, Added<PlayerInfo>>,
+) {
+    if player_info_query.is_empty() {
+        return;
+    }
+
+    let mut entity = commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(12.0),
+            right: Val::Px(12.0),
+            flex_direction: FlexDirection::Column,
+            ..default()
+        },
+        MatchUI,
+    ));
+
+    entity.with_children(|parent| {
+        for player_info in player_info_query.iter() {
+            parent.spawn((
+                Text::new(format!(
+                    "Player {}: Cards: {} | Guess: {} | Wins: {}",
+                    player_info.player_id + 1,
+                    player_info.card_count,
+                    player_info.guess,
+                    player_info.wins,
+                )),
+                TextFont {
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(TEXT_COLOR),
+                Node {
+                    margin: UiRect::all(Val::Px(5.0)),
+                    ..default()
+                },
+                PlayerInfoUI(player_info.player_id),
+            ));
+        }
+    });
+}
+
+pub fn player_info_ui_update(
+    mut commands: Commands,
+    player_info_query: Query<&PlayerInfo, Changed<PlayerInfo>>,
+    mut player_info_ui_query: Query<(&PlayerInfoUI, &mut Text)>,
+) {
+    for player_info in player_info_query.iter() {
+        for (player_info_ui, mut text) in player_info_ui_query.iter_mut() {
+            if player_info_ui.0 == player_info.player_id {
+                text.0 = format!(
+                    "Player {}: Cards: {} | Guess: {} | Wins: {}",
+                    player_info.player_id + 1,
+                    player_info.card_count,
+                    player_info.guess,
+                    player_info.wins,
+                )
+            }
+        }
     }
 }

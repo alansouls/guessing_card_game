@@ -115,13 +115,7 @@ fn check_turn_winner(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
 }
 
 fn check_match_finished(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
-    let mut match_finished = true;
-    for cards in &game_logic.player_cards {
-        if cards.len() > 0 {
-            match_finished = false;
-            break;
-        }
-    }
+    let match_finished = game_logic.player_cards.iter().all(|c| c.len() == 0);
 
     if match_finished {
         remove_cards_from_players(game_logic);
@@ -161,6 +155,7 @@ fn start_match(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
     distribute_cards(game_logic);
     game_logic.guessing_round = true;
     game_logic.guesses = vec![0; game_logic.player_card_count.len()];
+    game_logic.wins = vec![0; game_logic.player_card_count.len()];
 
     if game_logic.player_turn == 0 {
         game_logic.last_to_guess = game_logic.player_card_count.len() - 1;
@@ -224,8 +219,7 @@ impl GameLogic for LocalGameLogic {
             self.guesses[player_id] = guess;
             self.player_turn = next_player;
 
-            while self.player_cards[self.player_turn].len() == 0
-            {
+            while self.player_cards[self.player_turn].len() == 0 {
                 self.player_turn = (self.player_turn + 1) % self.player_card_count.len();
             }
 
@@ -281,6 +275,10 @@ impl GameLogic for LocalGameLogic {
 
     fn get_player_guess(&self, player_id: usize) -> usize {
         self.guesses[player_id as usize]
+    }
+
+    fn get_player_wins(&self, player_id: usize) -> usize {
+        self.wins[player_id]
     }
 
     fn get_winner(&self) -> usize {

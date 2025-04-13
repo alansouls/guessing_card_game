@@ -30,7 +30,11 @@ impl Plugin for GameUIMatchPlugin {
             )
             .add_systems(
                 Update,
-                (systems::handle_current_player_changed,)
+                (
+                    systems::handle_current_player_changed,
+                    systems::player_info_ui_setup,
+                    systems::player_info_ui_update,
+                )
                     .chain()
                     .run_if(in_state(GameState::LocalGame)),
             )

@@ -18,3 +18,6 @@ pub struct CardPlayed {
     pub player_id: usize,
     pub card: Card,
 }
+
+#[derive(Event)]
+pub struct PlayerInfoUpdated;

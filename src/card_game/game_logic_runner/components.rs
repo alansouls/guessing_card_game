@@ -9,6 +9,14 @@ use super::MatchState;
 pub struct CurrentPlayer(pub usize);
 
 #[derive(Component)]
+pub struct PlayerInfo{
+    pub player_id: usize,
+    pub card_count: usize,
+    pub guess: usize,
+    pub wins: usize,
+}
+
+#[derive(Component)]
 pub struct Card {
     pub player_id: Option<usize>,
     pub card: super::super::game_logic::common::Card,

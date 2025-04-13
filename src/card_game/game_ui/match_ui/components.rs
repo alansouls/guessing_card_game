@@ -58,3 +58,6 @@ pub struct PlayAreaBundle {
     pub transform: Transform,
     pub play_area: PlayArea,
 }
+
+#[derive(Component)]
+pub struct PlayerInfoUI(pub usize);
