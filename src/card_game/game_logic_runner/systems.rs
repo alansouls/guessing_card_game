@@ -139,7 +139,6 @@ pub fn spawn_cards(mut commands: Commands, game_logic: Res<LocalGameLogicRes>) {
     for player_id in 0..game_logic.0.player_card_count.len() {
         let cards = game_logic.0.get_player_cards(player_id as usize);
         for card in cards.iter() {
-            println!("Player {} has card {:?}", player_id, card);
             commands.spawn(components::Card {
                 player_id: Some(player_id as usize),
                 card: *card,
@@ -154,6 +153,7 @@ pub fn clear_cards(
     display_played_card_timer: Option<Single<(Entity, &mut DisplayPlayedCardTimer)>>,
     mut cards: Query<Entity, With<components::Card>>,
     mut match_state: ResMut<NextState<MatchState>>,
+    mut current_player: Single<&mut CurrentPlayer>
 ) {
     if display_played_card_timer.is_none() {
         return;
@@ -162,15 +162,16 @@ pub fn clear_cards(
     let timer_entity = display_played_card_timer.as_ref().unwrap().0;
     let timer_component = &mut (display_played_card_timer.unwrap().1);
 
-    timer_component.0.tick(time.delta());
+    timer_component.timer.tick(time.delta());
 
-    if timer_component.0.finished() {
+    if timer_component.timer.finished() {
         for card_entity in cards.iter_mut() {
             commands.entity(card_entity).despawn_recursive();
         }
 
         commands.entity(timer_entity).despawn_recursive();
-        match_state.set(timer_component.1);
+        match_state.set(timer_component.match_state);
+        current_player.0 = timer_component.next_player_id;
     }
 }
 
@@ -181,12 +182,6 @@ fn update_current_player(
     current_player: &mut CurrentPlayer,
     match_state: &mut NextState<MatchState>,
 ) {
-    let current_player_id = game_logic.0.get_player_turn();
-
-    if current_player_id != current_player.0 {
-        current_player.0 = current_player_id;
-    }
-
     let next_state = if game_logic.0.guessing_round {
         MatchState::Guessing
     } else if game_logic.0.game_over {
@@ -195,13 +190,20 @@ fn update_current_player(
         MatchState::Playing
     };
 
+    let current_player_id = game_logic.0.get_player_turn();
+
     if clear_played_cards {
-        commands.spawn(DisplayPlayedCardTimer(
-            Timer::from_seconds(3.0, TimerMode::Once),
-            next_state,
-        ));
+        commands.spawn(DisplayPlayedCardTimer {
+            timer: Timer::from_seconds(3.0, TimerMode::Once),
+            match_state: next_state,
+            next_player_id: current_player_id,
+        });
         match_state.set(MatchState::DisplayingPlayedCard);
     } else {
+        if current_player_id != current_player.0 {
+            current_player.0 = current_player_id;
+        }
+
         match_state.set(next_state);
     }
 }

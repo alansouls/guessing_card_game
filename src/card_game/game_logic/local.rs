@@ -99,23 +99,11 @@ fn next_player_turn(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
 }
 
 fn check_turn_winner(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
-    // Find the winning card - should be the highest card of the lead suit
-    let lead_suit = game_logic.cards_played[0].card.0;
-    
-    // Find the highest card of the lead suit
-    let winning_card_index = game_logic.cards_played
-        .iter()
-        .enumerate()
-        .filter(|(_, card)| card.card.0 == lead_suit) // Only consider cards of the lead suit
-        .max_by(|(_, a), (_, b)| a.card.1.partial_cmp(&b.card.1).unwrap())
-        .map(|(index, _)| index)
-        .unwrap_or(0); // Default to first card if something goes wrong
-    
-    let winning_player = game_logic.cards_played[winning_card_index].player_id;
-    
-    game_logic.wins[winning_player] += 1;
+    let winning_player = game_logic.cards_played.last().unwrap().player_id;
+
+    game_logic.wins[winning_player as usize] += 1;
     game_logic.player_turn = winning_player;
-    
+
     game_logic.cards_played.clear();
     check_match_finished(game_logic)
 }
@@ -177,39 +165,25 @@ fn start_match(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
 }
 
 fn distribute_cards(game_logic: &mut LocalGameLogic) {
-    for (index, &cards_count) in game_logic.player_card_count.iter().enumerate() {
-        if cards_count > 0 {
-            // Only distribute cards to players who should have cards
-            game_logic.player_cards[index] = if game_logic.deck.len() >= cards_count {
-                game_logic.deck.split_off(game_logic.deck.len() - cards_count)
-            } else {
-                // Handle case where there might not be enough cards
-                Vec::new()
-            };
-        } else {
-            // Empty vector for players with no cards
-            game_logic.player_cards[index] = Vec::new();
-        }
+    for (index, cards_count) in game_logic.player_card_count.iter().enumerate() {
+        game_logic.player_cards[index] = game_logic
+            .deck
+            .split_off(game_logic.deck.len() - cards_count);
     }
 }
 
 fn push_played_card(game_logic: &mut LocalGameLogic, card: &PlayedCard) {
-    // In a trick-taking game, we need to track the highest card of the same suit as the first card
-    if game_logic.cards_played.is_empty() {
-        // First card of the trick
-        game_logic.cards_played.push(*card);
-    } else {
-        let lead_card = game_logic.cards_played[0].card;
-        let lead_suit = lead_card.0;
-        
-        // If same suit, compare by rank; if different suit, lead suit always wins
-        if card.card.0 == lead_suit {
-            // Same suit, compare ranks
-            game_logic.cards_played.push(*card);
-        } else {
-            // Different suit, cannot win the trick
-            game_logic.cards_played.push(*card);
+    match game_logic.cards_played.pop() {
+        Some(last_card) => {
+            if last_card.card > card.card {
+                game_logic.cards_played.push(*card);
+                game_logic.cards_played.push(last_card);
+            } else {
+                game_logic.cards_played.push(last_card);
+                game_logic.cards_played.push(*card);
+            }
         }
+        _ => game_logic.cards_played.push(*card),
     }
 }
 
@@ -300,10 +274,10 @@ impl GameLogic for LocalGameLogic {
         return self
             .player_card_count
             .iter()
-            .enumerate()
-            .filter(|(_, c)| **c > 0)  // Fixed reference pattern
-            .map(|(id, _)| id)
-            .next()
+            .filter(|c| **c > 0)
+            .map(|c| *c)
+            .collect::<Vec<usize>>()
+            .pop()
             .expect("No winner found");
     }
 }
