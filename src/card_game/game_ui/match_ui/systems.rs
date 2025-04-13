@@ -299,6 +299,19 @@ pub fn display_player_cards(
     }
 }
 
+// Helper function to check if a point is within the play area
+fn is_point_in_play_area(
+    point: Vec2,
+    play_area_radius: f32,
+    play_area_position: Vec2,
+) -> bool {
+    let relative_x = point.x - play_area_position.x;
+    let relative_y = point.y - play_area_position.y;
+    
+    (relative_x > -play_area_radius && relative_x < play_area_radius)
+        && (relative_y > -play_area_radius && relative_y < play_area_radius)
+}
+
 pub fn select_card(
     mut commands: Commands,
     camera_query: Single<(&Camera, &GlobalTransform)>,
@@ -338,20 +351,19 @@ pub fn unselect_card(
     current_player: Single<&CurrentPlayer>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut card_query: Query<(Entity, &mut Transform, &CardSelected, &Card), With<CardSelected>>,
-    play_area_query: Query<&PlayArea>,
+    play_area_query: Query<(&PlayArea, &Transform), Without<CardSelected>>,
     mut play_events: EventWriter<CardPlayed>,
 ) {
     if buttons.just_released(MouseButton::Left) {
         for (entity_id, mut transform, card_selected, card) in card_query.iter_mut() {
             let mut entity = commands.entity(entity_id);
-
             entity.remove::<CardSelected>();
 
-            let play_area = play_area_query.single();
+            let (play_area, play_area_transform) = play_area_query.single();
+            let card_position = Vec2::new(transform.translation.x, transform.translation.y);
+            let play_area_position = Vec2::new(play_area_transform.translation.x, play_area_transform.translation.y);
 
-            if (transform.translation.x > -play_area.0 && transform.translation.x < play_area.0)
-                && (transform.translation.y > -play_area.0 && transform.translation.y < play_area.0)
-            {
+            if is_point_in_play_area(card_position, play_area.0, play_area_position) {
                 play_events.send(CardPlayed {
                     player_id: current_player.0,
                     card: card.card,
@@ -503,29 +515,38 @@ pub fn setup_play_area(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    windows: Query<&Window>,
+    existing_play_area: Option<Single<&PlayArea>>,
 ) {
-    const RADIUS: f32 = 30.0;
+    if existing_play_area.is_some() {
+        return;
+    }
+    
+    let window = windows.single();
+    let height = window.height();
+
+    const RADIUS: f32 = 180.0;
     commands.spawn(PlayAreaBundle {
         mesh: Mesh2d(meshes.add(Annulus::new(RADIUS - 2.0, RADIUS))),
         mesh_material: MeshMaterial2d(materials.add(Color::from(CRIMSON))),
-        transform: Transform::from_xyz(0.0, 0.0, 20.0),
+        transform: Transform::from_xyz(0.0 , 0.0 + height / 4.0, 20.0),
         play_area: PlayArea(RADIUS),
     });
 }
 
 pub fn highlight_play_area(
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut play_area_query: Query<(&PlayArea, &mut MeshMaterial2d<ColorMaterial>)>,
+    mut play_area_query: Query<(&PlayArea, &mut MeshMaterial2d<ColorMaterial>, &Transform)>,
     selected_card: Query<&Transform, With<CardSelected>>,
 ) {
-    for (play_area, mesh_material) in play_area_query.iter_mut() {
+    for (play_area, mesh_material, play_area_transform) in play_area_query.iter_mut() {
         let color_material = materials.get_mut(mesh_material.0.id()).unwrap();
         match selected_card.get_single() {
-            Ok(transform) => {
-                if (transform.translation.x > -play_area.0 && transform.translation.x < play_area.0)
-                    && (transform.translation.y > -play_area.0
-                        && transform.translation.y < play_area.0)
-                {
+            Ok(card_transform) => {
+                let card_position = Vec2::new(card_transform.translation.x, card_transform.translation.y);
+                let play_area_position = Vec2::new(play_area_transform.translation.x, play_area_transform.translation.y);
+                
+                if is_point_in_play_area(card_position, play_area.0, play_area_position) {
                     color_material.color = Color::from(YELLOW);
                 } else {
                     color_material.color = Color::from(CRIMSON);

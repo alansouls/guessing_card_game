@@ -43,3 +43,11 @@ pub struct PlayedCard{
     pub player_id: usize,
     pub card: Card,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub enum CardPlayedResult {
+    NextPlayer,
+    NextTurn,
+    NextMatch,
+    GameOver
+}

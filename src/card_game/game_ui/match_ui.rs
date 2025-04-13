@@ -24,6 +24,7 @@ impl Plugin for GameUIMatchPlugin {
                     systems::enable_disable_remove_guess_button,
                     systems::handle_guess_changed,
                     systems::handle_guess_current_player_changed,
+                    systems::display_player_cards,
                 )
                     .run_if(in_state(MatchState::Guessing)),
             )
@@ -41,7 +42,7 @@ impl Plugin for GameUIMatchPlugin {
                     systems::unselect_card,
                     systems::move_card,
                     systems::highlight_play_area,
-                    systems::adjust_top_played_card
+                    systems::adjust_top_played_card,
                 )
                     .chain()
                     .run_if(in_state(MatchState::Playing)),

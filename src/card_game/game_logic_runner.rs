@@ -3,6 +3,7 @@ pub mod events;
 pub mod systems;
 
 use bevy::prelude::*;
+use components::DisplayPlayedCardTimer;
 use events::{CardPlayed, GameEnded, PlayerGuessed};
 
 use super::GameState;
@@ -13,6 +14,7 @@ pub enum MatchState {
     Guessing,
     Playing,
     Finished,
+    DisplayingPlayedCard,
     #[default]
     Disabled,
 }
@@ -25,8 +27,18 @@ impl Plugin for GameLogicRunnerPlugin {
             .add_event::<GameEnded>()
             .add_event::<CardPlayed>()
             .add_event::<PlayerGuessed>()
-            .add_systems(OnEnter(GameState::LocalGameInit), systems::handle_game_start)
-            .add_systems(OnEnter(MatchState::Guessing), systems::spawn_cards)
+            .add_systems(
+                OnEnter(GameState::LocalGameInit),
+                (systems::handle_game_start, systems::spawn_cards).chain(),
+            )
+            .add_systems(
+                Update,
+                (systems::clear_cards).run_if(in_state(MatchState::DisplayingPlayedCard)),
+            )
+            .add_systems(
+                OnExit(MatchState::DisplayingPlayedCard),
+                systems::spawn_cards,
+            )
             .add_systems(
                 Update,
                 (systems::handle_player_guess, systems::handle_card_played)

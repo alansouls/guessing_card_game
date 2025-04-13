@@ -1,18 +1,27 @@
 use bevy::{
     ecs::{
-        entity::Entity, event::{EventReader, EventWriter}, query::With, system::{Commands, Query, Res, ResMut, Single}
+        entity::Entity,
+        event::{EventReader, EventWriter},
+        query::With,
+        system::{Commands, Query, Res, ResMut, Single},
     },
+    hierarchy::DespawnRecursiveExt,
     state::state::NextState,
+    time::{Time, Timer, TimerMode},
 };
 
 use crate::card_game::{
     GameSettings, GameState, LocalGameLogicRes,
-    game_logic::{GameLogic, common::Card as CardStruct, local::LocalGameLogic},
+    game_logic::{
+        GameLogic,
+        common::{Card as CardStruct, CardPlayedResult},
+        local::LocalGameLogic,
+    },
 };
 
 use super::{
     MatchState,
-    components::{self, CurrentPlayer, MaxGuess, TopPlayedCard},
+    components::{self, CurrentPlayer, DisplayPlayedCardTimer, MaxGuess, TopPlayedCard},
     events::{CardPlayed, GameEnded, PlayerGuessed},
 };
 
@@ -35,14 +44,25 @@ pub fn handle_game_start(
 }
 
 pub fn handle_player_guess(
+    mut commands: Commands,
     mut game_logic: ResMut<LocalGameLogicRes>,
     mut event: EventReader<PlayerGuessed>,
     mut current_player: Single<&mut CurrentPlayer>,
     mut match_state: ResMut<NextState<MatchState>>,
 ) {
     for event in event.read() {
-        game_logic.0.set_guess(event.player_id, event.guess);
-        update_current_player(&game_logic, current_player.as_mut(), match_state.as_mut());
+        match game_logic.0.set_guess(event.player_id, event.guess) {
+            Ok(_) => {
+                update_current_player(
+                    false,
+                    &mut commands,
+                    &game_logic,
+                    current_player.as_mut(),
+                    match_state.as_mut(),
+                );
+            }
+            Err(_) => (),
+        }
     }
 }
 
@@ -59,7 +79,7 @@ pub fn handle_card_played(
     let mapped_top_card = top_card.map(|t| *t);
     for event in event.read() {
         match game_logic.0.play_card(event.player_id, &event.card) {
-            Ok(_) => {
+            Ok(CardPlayedResult::NextPlayer) => {
                 define_card_as_played(
                     &mut commands,
                     &game_logic.0,
@@ -69,13 +89,44 @@ pub fn handle_card_played(
                     &mapped_top_card,
                 );
 
-                if game_logic.0.game_over {
-                    game_ended_writer.send(GameEnded {
-                        winner: game_logic.0.get_winner(),
-                    });
-                }
+                update_current_player(
+                    false,
+                    &mut commands,
+                    &game_logic,
+                    current_player.as_mut(),
+                    match_state.as_mut(),
+                );
+            }
+            Ok(CardPlayedResult::NextTurn) | Ok(CardPlayedResult::NextMatch) => {
+                define_card_as_played(
+                    &mut commands,
+                    &game_logic.0,
+                    event.player_id,
+                    event.card,
+                    &mut cards,
+                    &mapped_top_card,
+                );
 
-                update_current_player(&game_logic, current_player.as_mut(), match_state.as_mut());
+                update_current_player(
+                    true,
+                    &mut commands,
+                    &game_logic,
+                    current_player.as_mut(),
+                    match_state.as_mut(),
+                );
+            }
+            Ok(CardPlayedResult::GameOver) => {
+                define_card_as_played(
+                    &mut commands,
+                    &game_logic.0,
+                    event.player_id,
+                    event.card,
+                    &mut cards,
+                    &mapped_top_card,
+                );
+
+                let winner = game_logic.0.get_winner();
+                game_ended_writer.send(GameEnded { winner });
             }
             Err(err) => {
                 println!("Error playing card: {}", err);
@@ -84,7 +135,48 @@ pub fn handle_card_played(
     }
 }
 
+pub fn spawn_cards(mut commands: Commands, game_logic: Res<LocalGameLogicRes>) {
+    for player_id in 0..game_logic.0.player_card_count.len() {
+        let cards = game_logic.0.get_player_cards(player_id as usize);
+        for card in cards.iter() {
+            println!("Player {} has card {:?}", player_id, card);
+            commands.spawn(components::Card {
+                player_id: Some(player_id as usize),
+                card: *card,
+            });
+        }
+    }
+}
+
+pub fn clear_cards(
+    mut commands: Commands,
+    time: Res<Time>,
+    display_played_card_timer: Option<Single<(Entity, &mut DisplayPlayedCardTimer)>>,
+    mut cards: Query<Entity, With<components::Card>>,
+    mut match_state: ResMut<NextState<MatchState>>,
+) {
+    if display_played_card_timer.is_none() {
+        return;
+    }
+
+    let timer_entity = display_played_card_timer.as_ref().unwrap().0;
+    let timer_component = &mut (display_played_card_timer.unwrap().1);
+
+    timer_component.0.tick(time.delta());
+
+    if timer_component.0.finished() {
+        for card_entity in cards.iter_mut() {
+            commands.entity(card_entity).despawn_recursive();
+        }
+
+        commands.entity(timer_entity).despawn_recursive();
+        match_state.set(timer_component.1);
+    }
+}
+
 fn update_current_player(
+    clear_played_cards: bool,
+    commands: &mut Commands,
     game_logic: &LocalGameLogicRes,
     current_player: &mut CurrentPlayer,
     match_state: &mut NextState<MatchState>,
@@ -95,24 +187,22 @@ fn update_current_player(
         current_player.0 = current_player_id;
     }
 
-    if game_logic.0.guessing_round {
-        match_state.set(MatchState::Guessing);
+    let next_state = if game_logic.0.guessing_round {
+        MatchState::Guessing
     } else if game_logic.0.game_over {
-        match_state.set(MatchState::Finished);
+        MatchState::Finished
     } else {
-        match_state.set(MatchState::Playing);
-    }
-}
+        MatchState::Playing
+    };
 
-pub fn spawn_cards(mut commands: Commands, game_logic: Res<LocalGameLogicRes>) {
-    for player_id in 0..game_logic.0.player_card_count.len() {
-        let cards = game_logic.0.get_player_cards(player_id as usize);
-        for card in cards.iter() {
-            commands.spawn(components::Card {
-                player_id: Some(player_id as usize),
-                card: *card,
-            });
-        }
+    if clear_played_cards {
+        commands.spawn(DisplayPlayedCardTimer(
+            Timer::from_seconds(3.0, TimerMode::Once),
+            next_state,
+        ));
+        match_state.set(MatchState::DisplayingPlayedCard);
+    } else {
+        match_state.set(next_state);
     }
 }
 

@@ -1,4 +1,6 @@
-use bevy::ecs::component::Component;
+use bevy::{ecs::{component::Component, system::Resource}, time::Timer};
+
+use super::MatchState;
 
 #[derive(Component)]
 pub struct CurrentPlayer(pub usize);
@@ -17,3 +19,6 @@ pub struct MaxGuess(pub usize);
 
 #[derive(Component)]
 pub struct TopPlayedCard;
+
+#[derive(Component)]
+pub struct DisplayPlayedCardTimer(pub Timer, pub MatchState);

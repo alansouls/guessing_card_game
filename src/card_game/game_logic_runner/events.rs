@@ -1,4 +1,4 @@
-use bevy::ecs::event::Event;
+use bevy::{ecs::{event::Event, system::Resource}, time::Timer};
 
 use crate::card_game::game_logic::common::Card;
 
