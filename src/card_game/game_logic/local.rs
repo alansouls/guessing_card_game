@@ -71,12 +71,11 @@ fn shuffle_deck(deck: &mut Vec<Card>) {
 fn start_playing_round(game_logic: &mut LocalGameLogic) {
     game_logic.guessing_round = false;
 
-    while game_logic.player_card_count[game_logic.player_turn] == 0
-    {
+    while game_logic.player_card_count[game_logic.player_turn] == 0 {
         game_logic.player_turn =
             (game_logic.player_turn + 1) % game_logic.player_card_count.len() as usize;
     }
-    
+
     game_logic.starting_turn = game_logic.player_turn;
 }
 
@@ -84,7 +83,7 @@ fn next_player_turn(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
     game_logic.player_turn =
         (game_logic.player_turn + 1) % game_logic.player_card_count.len() as usize;
 
-    while game_logic.player_card_count[game_logic.player_turn as usize] == 0
+    while game_logic.player_cards[game_logic.player_turn as usize].len() == 0
         && game_logic.player_turn != game_logic.starting_turn
     {
         game_logic.player_turn =
@@ -101,8 +100,15 @@ fn next_player_turn(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
 fn check_turn_winner(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
     let winning_player = game_logic.cards_played.last().unwrap().player_id;
 
-    game_logic.wins[winning_player as usize] += 1;
+    game_logic.wins[winning_player] += 1;
     game_logic.player_turn = winning_player;
+
+    let has_cards_to_play = game_logic.player_cards.iter().any(|c| c.len() > 0);
+    while game_logic.player_cards[game_logic.player_turn].len() == 0 && has_cards_to_play {
+        game_logic.player_turn = (game_logic.player_turn + 1) % game_logic.player_card_count.len();
+    }
+
+    println!("Next player is {}", game_logic.player_turn);
 
     game_logic.cards_played.clear();
     check_match_finished(game_logic)
@@ -149,6 +155,7 @@ fn start_match(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
         game_logic.game_over = true;
         return CardPlayedResult::GameOver;
     }
+    game_logic.starting_turn = game_logic.player_turn;
     game_logic.deck = create_deck();
     shuffle_deck(&mut game_logic.deck);
     distribute_cards(game_logic);
@@ -194,7 +201,6 @@ impl GameLogic for LocalGameLogic {
         self.game_over = false;
         self.wins = vec![0; player_count];
         self.player_cards = vec![Vec::new(); player_count];
-        self.starting_turn = 0;
         self.cards_played = Vec::new();
 
         start_match(self);
@@ -207,14 +213,21 @@ impl GameLogic for LocalGameLogic {
 
         let total_guesses = self.guesses.iter().sum::<usize>();
         let max_cards = self.player_card_count.iter().max().unwrap_or(&0);
-        let next_player = (self.player_turn + 1) % self.player_card_count.len() as usize;
+        let next_player = (self.player_turn + 1) % self.player_card_count.len();
         if self.player_turn == player_id {
             if total_guesses + guess == *max_cards && next_player == self.starting_turn {
-                return Err(String::from("You cannot guess the same number of cards as the maximum cards in hand"));
+                return Err(String::from(
+                    "You cannot guess the same number of cards as the maximum cards in hand",
+                ));
             }
 
-            self.guesses[player_id as usize] = guess;
+            self.guesses[player_id] = guess;
             self.player_turn = next_player;
+
+            while self.player_cards[self.player_turn].len() == 0
+            {
+                self.player_turn = (self.player_turn + 1) % self.player_card_count.len();
+            }
 
             if self.player_turn == self.starting_turn {
                 start_playing_round(self);
