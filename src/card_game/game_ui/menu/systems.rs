@@ -1,4 +1,3 @@
-use bevy::color::palettes::css::CRIMSON;
 use bevy::prelude::*;
 
 use crate::card_game::game_ui::components::ButtonDisabled;
@@ -7,6 +6,12 @@ use crate::card_game::GameState;
 
 const MIN_PLAYERS: usize = 2;
 const MAX_PLAYERS: usize = 8;
+
+// Updated UI constants
+const MENU_BACKGROUND: Color = Color::srgb(0.4, 0.1, 0.2); // Burgundy-like
+const MENU_PANEL_BACKGROUND: Color = Color::srgb(0.1, 0.1, 0.15); // Dark blue-gray
+const MENU_TITLE_FONT_SIZE: f32 = 72.0;
+const MENU_PANEL_PADDING: f32 = 30.0;
 
 use super::super::{DISABLED_BUTTON, NORMAL_BUTTON, TEXT_COLOR};
 
@@ -18,10 +23,10 @@ pub fn menu_setup(mut menu_state: ResMut<NextState<MenuState>>) {
     menu_state.set(MenuState::Main);
 }
 
-pub fn main_menu_setup(mut commands: Commands) {
+pub fn main_menu_setup(mut commands: Commands, _asset_server: Res<AssetServer>) {
     // Common style for all buttons on the screen
     let button_node = Node {
-        width: Val::Px(300.0),
+        width: Val::Px(320.0),
         height: Val::Px(65.0),
         margin: UiRect::all(Val::Px(20.0)),
         justify_content: JustifyContent::Center,
@@ -30,7 +35,7 @@ pub fn main_menu_setup(mut commands: Commands) {
     };
 
     let button_text_font = TextFont {
-        font_size: 25.0,
+        font_size: 28.0,
         ..default()
     };
 
@@ -43,32 +48,42 @@ pub fn main_menu_setup(mut commands: Commands) {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
+            BackgroundColor(MENU_BACKGROUND),
             OnMainMenuScreen,
         ))
         .with_children(|parent| {
+            // Main menu panel
             parent
                 .spawn((
                     Node {
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
+                        padding: UiRect::all(Val::Px(MENU_PANEL_PADDING)),
                         ..default()
                     },
-                    BackgroundColor(CRIMSON.into()),
+                    BackgroundColor(MENU_PANEL_BACKGROUND),
                 ))
                 .with_children(|parent| {
+                    // Title with enhanced styling
                     parent.spawn((
                         Text::new("Guessing Card Game"),
                         TextFont {
-                            font_size: 67.0,
+                            font_size: MENU_TITLE_FONT_SIZE,
                             ..default()
                         },
                         TextColor(TEXT_COLOR),
                         Node {
-                            margin: UiRect::all(Val::Px(50.0)),
+                            margin: UiRect { 
+                                bottom: Val::Px(60.0),
+                                top: Val::Px(20.0),
+                                left: Val::Px(50.0),
+                                right: Val::Px(50.0),
+                            },
                             ..default()
                         },
                     ));
 
+                    // Play Local Game button
                     parent
                         .spawn((
                             Button,
@@ -84,11 +99,12 @@ pub fn main_menu_setup(mut commands: Commands) {
                             ));
                         });
 
+                    // Play Online Game button
                     parent
                         .spawn((
                             Button,
                             button_node.clone(),
-                            BackgroundColor(NORMAL_BUTTON),
+                            BackgroundColor(DISABLED_BUTTON),
                             MenuButtonAction::PlayOnlineGame,
                             ButtonDisabled,
                         ))
@@ -100,6 +116,7 @@ pub fn main_menu_setup(mut commands: Commands) {
                             ));
                         });
 
+                    // Quit button
                     parent
                         .spawn((
                             Button,
@@ -123,14 +140,14 @@ pub fn local_game_menu_setup(mut commands: Commands) {
     let button_node = Node {
         width: Val::Px(300.0),
         height: Val::Px(65.0),
-        margin: UiRect::all(Val::Px(20.0)),
+        margin: UiRect::all(Val::Px(15.0)),
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
         ..default()
     };
 
     let button_text_font = TextFont {
-        font_size: 25.0,
+        font_size: 28.0,
         ..default()
     };
 
@@ -143,40 +160,82 @@ pub fn local_game_menu_setup(mut commands: Commands) {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
+            BackgroundColor(MENU_BACKGROUND),
             OnLocalGameScreen,
         ))
         .with_children(|parent| {
+            // Local game menu panel
             parent
                 .spawn((
                     Node {
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
+                        padding: UiRect::all(Val::Px(MENU_PANEL_PADDING)),
                         ..default()
                     },
-                    BackgroundColor(CRIMSON.into()),
+                    BackgroundColor(MENU_PANEL_BACKGROUND),
                 ))
                 .with_children(|parent| {
+                    // Title
                     parent.spawn((
-                        Text::new("Number of Players: 2"),
+                        Text::new("Local Game Setup"),
                         TextFont {
-                            font_size: 33.0,
+                            font_size: 48.0,
                             ..default()
                         },
                         TextColor(TEXT_COLOR),
                         Node {
-                            margin: UiRect::all(Val::Px(50.0)),
+                            margin: UiRect { 
+                                bottom: Val::Px(40.0),
+                                top: Val::Px(10.0),
+                                left: Val::Px(20.0),
+                                right: Val::Px(20.0),
+                            },
                             ..default()
                         },
-                        NumberOfLocalPLayers(2),
                     ));
 
+                    // Player count with stylized container
                     parent
-                        .spawn((Node {
-                            flex_direction: FlexDirection::Row,
-                            align_items: AlignItems::Center,
-                            ..default()
-                        },))
+                        .spawn((
+                            Node {
+                                width: Val::Px(340.0),
+                                padding: UiRect::all(Val::Px(15.0)),
+                                margin: UiRect { 
+                                    bottom: Val::Px(30.0),
+                                    ..default()
+                                },
+                                align_items: AlignItems::Center,
+                                justify_content: JustifyContent::Center,
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.1, 0.3, 0.2)),
+                        ))
                         .with_children(|parent| {
+                            parent.spawn((
+                                Text::new("Number of Players: 2"),
+                                TextFont {
+                                    font_size: 34.0,
+                                    ..default()
+                                },
+                                TextColor(TEXT_COLOR),
+                                NumberOfLocalPLayers(2),
+                            ));
+                        });
+
+                    // Player count controls
+                    parent
+                        .spawn((
+                            Node {
+                                flex_direction: FlexDirection::Row,
+                                align_items: AlignItems::Center,
+                                justify_content: JustifyContent::Center,
+                                margin: UiRect { bottom: Val::Px(30.0), ..default() },
+                                ..default()
+                            },
+                        ))
+                        .with_children(|parent| {
+                            // Remove Player button
                             parent
                                 .spawn((
                                     Button,
@@ -194,6 +253,7 @@ pub fn local_game_menu_setup(mut commands: Commands) {
                                     ));
                                 });
 
+                            // Add Player button
                             parent
                                 .spawn((
                                     Button,
@@ -211,6 +271,7 @@ pub fn local_game_menu_setup(mut commands: Commands) {
                                 });
                         });
 
+                    // Start Game button
                     parent
                         .spawn((
                             Button,
@@ -223,9 +284,18 @@ pub fn local_game_menu_setup(mut commands: Commands) {
                                 Text::new("Start Game"),
                                 button_text_font.clone(),
                                 TextColor(TEXT_COLOR),
+                                Node {
+                                    padding: UiRect { 
+                                        left: Val::Px(20.0),
+                                        right: Val::Px(20.0),
+                                        ..default()
+                                    },
+                                    ..default()
+                                },
                             ));
                         });
 
+                    // Back to Main Menu button
                     parent
                         .spawn((
                             Button,
@@ -245,10 +315,11 @@ pub fn local_game_menu_setup(mut commands: Commands) {
 }
 
 pub fn menu_action(
-    interaction_query: Query<
-        (&Interaction, &MenuButtonAction, Option<&ButtonDisabled>),
-        (Changed<Interaction>, With<Button>),
-    >,
+    interaction_query: Query<(
+        &Interaction,
+        &MenuButtonAction,
+        Option<&ButtonDisabled>,
+    ), (Changed<Interaction>, With<Button>)>,
     mut app_exit_events: EventWriter<AppExit>,
     mut add_player_events: EventWriter<AddPlayer>,
     mut remove_player_events: EventWriter<RemovePlayer>,
@@ -307,10 +378,10 @@ pub fn remove_player(
 }
 
 pub fn update_player_count_text(
-    mut player_count_query: Query<
-        (&mut Text, &NumberOfLocalPLayers),
-        Changed<NumberOfLocalPLayers>,
-    >,
+    mut player_count_query: Query<(
+        &mut Text,
+        &NumberOfLocalPLayers,
+    ), Changed<NumberOfLocalPLayers>>,
 ) {
     for (mut text, player_count) in &mut player_count_query {
         text.0 = format!("Number of Players: {}", player_count.0);
@@ -320,10 +391,11 @@ pub fn update_player_count_text(
 pub fn enable_disable_add_player_button(
     mut commands: Commands,
     player_count_query: Query<&NumberOfLocalPLayers, Changed<NumberOfLocalPLayers>>,
-    mut add_player_button_query: Query<
-        (Entity, Option<&ButtonDisabled>, &AddPlayerButton),
-        With<Button>,
-    >,
+    mut add_player_button_query: Query<(
+        Entity,
+        Option<&ButtonDisabled>,
+        &AddPlayerButton,
+    ), With<Button>>,
 ) {
     for player_count in player_count_query.iter() {
         for (entity, disabled, _) in &mut add_player_button_query {
@@ -339,10 +411,11 @@ pub fn enable_disable_add_player_button(
 pub fn enable_disable_remove_player_button(
     mut commands: Commands,
     player_count_query: Query<&NumberOfLocalPLayers, Changed<NumberOfLocalPLayers>>,
-    mut remove_player_button_query: Query<
-        (Entity, Option<&ButtonDisabled>, &RemovePlayerButton),
-        With<Button>,
-    >,
+    mut remove_player_button_query: Query<(
+        Entity,
+        Option<&ButtonDisabled>,
+        &RemovePlayerButton,
+    ), With<Button>>,
 ) {
     for player_count in player_count_query.iter() {
         for (entity, disabled, _) in &mut remove_player_button_query {

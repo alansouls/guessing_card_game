@@ -12,12 +12,13 @@ pub mod asset_loader;
 pub mod components;
 pub mod systems;
 
-pub const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
-pub const DISABLED_TEXT_COLOR: Color = Color::srgb(0.5, 0.5, 0.5);
-pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
-pub const DISABLED_BUTTON: Color = Color::srgb(0.1, 0.1, 0.1);
-pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
-pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+// Updated UI color scheme
+pub const TEXT_COLOR: Color = Color::srgb(0.95, 0.95, 0.95);
+pub const DISABLED_TEXT_COLOR: Color = Color::srgb(0.6, 0.6, 0.65);
+pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.17, 0.25);
+pub const DISABLED_BUTTON: Color = Color::srgb(0.1, 0.1, 0.15);
+pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.3, 0.45);
+pub const PRESSED_BUTTON: Color = Color::srgb(0.45, 0.65, 0.85);
 
 pub struct GameUIPlugin;
 
