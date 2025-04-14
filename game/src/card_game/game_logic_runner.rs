@@ -1,15 +1,13 @@
 pub mod components;
 pub mod events;
 pub mod systems;
+pub mod game_logic_facade;
 
 use bevy::prelude::*;
 use components::DisplayPlayedCardTimer;
 use events::{CardPlayed, GameEnded, PlayerGuessed, PlayerInfoUpdated};
 
 use super::GameState;
-
-
-pub mod game_logic_facade;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum MatchState {
