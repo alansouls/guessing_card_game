@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::{component::Component, system::Resource},
+    ecs::component::Component,
     time::Timer,
 };
 
@@ -19,7 +19,7 @@ pub struct PlayerInfo{
 #[derive(Component)]
 pub struct Card {
     pub player_id: Option<usize>,
-    pub card: super::super::game_logic::common::Card,
+    pub card: card_game_logic::game_logic::common::Card,
 }
 
 #[derive(Component)]

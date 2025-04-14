@@ -1,6 +1,6 @@
-use bevy::{ecs::{event::Event, system::Resource}, time::Timer};
+use bevy::ecs::event::Event;
 
-use crate::card_game::game_logic::common::Card;
+use card_game_logic::game_logic::common::Card;
 
 #[derive(Event)]
 pub struct GameEnded {

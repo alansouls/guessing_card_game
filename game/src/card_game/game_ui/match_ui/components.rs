@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::{bundle::Bundle, component::Component}, render::mesh::Mesh2d, sprite::{ColorMaterial, Material2d, MeshMaterial2d, Sprite}, transform::components::Transform
+    ecs::{bundle::Bundle, component::Component}, render::mesh::Mesh2d, sprite::{ColorMaterial, MeshMaterial2d, Sprite}, transform::components::Transform
 };
 
 #[derive(Component)]

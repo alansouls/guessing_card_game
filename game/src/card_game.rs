@@ -3,9 +3,9 @@ use bevy::{
     ecs::system::Resource,
     state::{app::AppExtStates, state::States},
 };
-use game_logic::local::LocalGameLogic;
 
-pub mod game_logic;
+use card_game_logic::game_logic::local::LocalGameLogic;
+
 pub mod game_logic_runner;
 pub mod game_ui;
 

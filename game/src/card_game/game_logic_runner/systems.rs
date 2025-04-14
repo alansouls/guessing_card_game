@@ -10,13 +10,12 @@ use bevy::{
     time::{Time, Timer, TimerMode},
 };
 
-use crate::card_game::{
-    GameSettings, GameState, LocalGameLogicRes,
-    game_logic::{
-        GameLogic,
-        common::{Card as CardStruct, CardPlayedResult},
-        local::LocalGameLogic,
-    },
+use crate::card_game::{GameSettings, GameState, LocalGameLogicRes};
+
+use card_game_logic::game_logic::{
+    GameLogic,
+    common::{Card as CardStruct, CardPlayedResult},
+    local::LocalGameLogic,
 };
 
 use super::{
@@ -266,7 +265,7 @@ pub fn update_player_infos(
     for _ in event.read() {
         for mut player_info in player_info_query.iter_mut() {
             let player_id = player_info.player_id;
-            
+
             let card_count = game_logic.0.get_player_cards(player_id).len();
             let guess = game_logic.0.get_player_guess(player_id);
             let wins = game_logic.0.get_player_wins(player_id);

@@ -1,6 +1,6 @@
-use bevy::{asset::{AssetServer, Handle}, sprite::Sprite};
+use bevy::{asset::AssetServer, sprite::Sprite};
 
-use crate::card_game::game_logic::common::{Card, Rank, Suit};
+use card_game_logic::game_logic::common::{Card, Rank, Suit};
 
 pub trait AssetLoader {
     fn load_card_sprite(&self, card: &Card) -> Sprite;
