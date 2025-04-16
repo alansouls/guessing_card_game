@@ -33,10 +33,12 @@ impl FromStr for MessageType {
     }
 }
 
+#[derive(PartialEq)]
 pub struct MessageParam {
     pub key: String,
     pub value: String,
 }
+
 
 pub struct GameMessage {
     pub player_id: usize,

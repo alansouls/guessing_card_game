@@ -8,6 +8,12 @@ pub struct GameSettings {
     pub initial_card_count: usize,
 }
 
+impl Default for GameSettings {
+    fn default() -> Self {
+        Self { player_count: 3, initial_card_count: 3 }
+    }
+}
+
 pub trait GameLogic {
     fn init(&mut self, player_count: usize, initial_card_count: usize);
     fn set_guess(&mut self, player_id: usize, guess: usize) -> Result<(), String>;
