@@ -1,21 +1,20 @@
-use std::{fmt::Display, str::FromStr};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum MessageType {
-    PlayerJoin,
-    Guess,
-    PlayCard,
-    UpdateState,
+    //Requests
+    PlayerJoin = 0,
+    Guess = 1,
+    PlayCard = 2,
+
+    //Responses
+    PlayerJoined = 3,
+    UpdateState = 4,
 }
 
 impl ToString for MessageType {
     fn to_string(&self) -> String {
-        match self {
-            MessageType::PlayerJoin => "0".to_string(),
-            MessageType::Guess => "1".to_string(),
-            MessageType::PlayCard => "2".to_string(),
-            MessageType::UpdateState => "3".to_string(),
-        }
+        (*self as u8).to_string()
     }
 }
 
@@ -27,7 +26,8 @@ impl FromStr for MessageType {
             "0" => Ok(MessageType::PlayerJoin),
             "1" => Ok(MessageType::Guess),
             "2" => Ok(MessageType::PlayCard),
-            "3" => Ok(MessageType::UpdateState),
+            "3" => Ok(MessageType::PlayerJoined),
+            "4" => Ok(MessageType::UpdateState),
             _ => Err(()),
         }
     }
