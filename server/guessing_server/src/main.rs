@@ -7,10 +7,8 @@ use std::{
     thread,
 };
 
-pub mod game_message;
-
 use futures::{executor::block_on, lock::Mutex};
-use game_message::GameMessage;
+use card_game_logic::{game_logic::local::LocalGameLogic, game_message::{GameMessage, MessageType}};
 
 pub struct PlayerInfo {
     pub player_id: usize,
@@ -19,28 +17,28 @@ pub struct PlayerInfo {
 }
 
 fn main() -> std::io::Result<()> {
-    {
-        let socket = Arc::new(UdpSocket::bind("127.0.0.1:34254")?);
+    let game_logic = LocalGameLogic::default();
+    let game_logic = Arc::new(Mutex::new(LocalGameLogic));
+    let socket = Arc::new(UdpSocket::bind("127.0.0.1:34254")?);
 
-        let map: HashMap<usize, PlayerInfo> = HashMap::new();
-        let map = Mutex::new(map);
-        let map = Arc::new(map);
-        loop {
-            let mut buf = [0; 1024];
-            let (amt, src) = socket.recv_from(&mut buf)?;
+    let map: HashMap<usize, PlayerInfo> = HashMap::new();
+    let map = Mutex::new(map);
+    let map = Arc::new(map);
+    loop {
+        let mut buf = [0; 1024];
+        let (amt, src) = socket.recv_from(&mut buf)?;
 
-            let map_clone = map.clone();
-            let socket_clone = socket.clone();
-            thread::spawn(move || {
-                let message_string = String::from_utf8_lossy(&buf[..amt]);
-                match GameMessage::from_str(&message_string) {
-                    Ok(message) => {
-                        handle_message(socket_clone.as_ref(), &src, &map_clone, message);
-                    }
-                    Err(_) => (),
+        let map_clone = map.clone();
+        let socket_clone = socket.clone();
+        thread::spawn(move || {
+            let message_string = String::from_utf8_lossy(&buf[..amt]);
+            match GameMessage::from_str(&message_string) {
+                Ok(message) => {
+                    handle_message(socket_clone.as_ref(), &src, &map_clone, message);
                 }
-            });
-        }
+                Err(_) => (),
+            }
+        });
     }
 }
 
@@ -51,26 +49,26 @@ fn handle_message(
     message: GameMessage,
 ) {
     let result: Result<(), String> = match message.message_type {
-        game_message::MessageType::PlayerJoin => {
+        MessageType::PlayerJoin => {
             add_player(message, response_address, ip_map).map(|player_id| {
                 let response_message = GameMessage {
                     player_id,
-                    message_type: game_message::MessageType::PlayerJoined,
+                    message_type: MessageType::PlayerJoined,
                     message_params: vec![],
                 };
                 let response_string = response_message.to_string();
                 let _ = socket.send_to(response_string.as_bytes(), response_address);
             })
         }
-        game_message::MessageType::Guess => {
+        MessageType::Guess => {
             println!("Player {} guessed", message.player_id);
             Ok(())
         }
-        game_message::MessageType::PlayCard => {
+        MessageType::PlayCard => {
             println!("Player {} played a card", message.player_id);
             Ok(())
         }
-        game_message::MessageType::PlayerJoined | game_message::MessageType::UpdateState => {
+        MessageType::PlayerJoined | MessageType::UpdateState => {
             Err("Server should not be getting this message".to_string())
         }
     };
