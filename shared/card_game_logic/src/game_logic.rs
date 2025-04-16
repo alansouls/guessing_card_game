@@ -3,6 +3,11 @@ use common::{Card, CardPlayedResult};
 pub mod common;
 pub mod local;
 
+pub struct GameSettings {
+    pub player_count: usize,
+    pub initial_card_count: usize,
+}
+
 pub trait GameLogic {
     fn init(&mut self, player_count: usize, initial_card_count: usize);
     fn set_guess(&mut self, player_id: usize, guess: usize) -> Result<(), String>;
