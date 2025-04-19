@@ -8,6 +8,7 @@ use menu::GameUIMenuPlugin;
 pub mod match_ui;
 pub mod menu;
 pub mod asset_loader;
+pub mod ui_entities;
 
 pub mod components;
 pub mod systems;
