@@ -3,12 +3,12 @@ pub mod events;
 pub mod systems;
 
 use bevy::prelude::*;
-use components::{OnLocalGameScreen, OnMainMenuScreen};
 use events::{AddPlayer, RemovePlayer};
 use systems::{
-    add_player, enable_disable_add_player_button,
-    enable_disable_remove_player_button, local_game_menu_setup, main_menu_setup, menu_action,
-    menu_setup, remove_player, update_player_count_text,
+    add_player, cleanup_local_game_menu, cleanup_main_menu, cleanup_online_game_menu,
+    enable_disable_add_player_button, enable_disable_remove_player_button, local_game_menu_setup,
+    main_menu_setup, menu_action, menu_setup, online_game_menu_setup, remove_player,
+    update_player_count_text,
 };
 
 use crate::card_game::GameState;
@@ -32,12 +32,11 @@ impl Plugin for GameUIMenuPlugin {
             .add_systems(OnEnter(GameState::Menu), menu_setup)
             .add_systems(OnExit(GameState::Menu), despawn_screen::<components::OnMainMenuScreen>)
             .add_systems(OnEnter(MenuState::Main), main_menu_setup)
-            .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)
+            .add_systems(OnExit(MenuState::Main), cleanup_main_menu)
             .add_systems(OnEnter(MenuState::LocalGame), local_game_menu_setup)
-            .add_systems(
-                OnExit(MenuState::LocalGame),
-                despawn_screen::<OnLocalGameScreen>,
-            )
+            .add_systems(OnExit(MenuState::LocalGame), cleanup_local_game_menu)
+            .add_systems(OnEnter(MenuState::OnlineGame), online_game_menu_setup)
+            .add_systems(OnExit(MenuState::OnlineGame), cleanup_online_game_menu)
             .add_event::<AddPlayer>()
             .add_event::<RemovePlayer>()
             .add_systems(

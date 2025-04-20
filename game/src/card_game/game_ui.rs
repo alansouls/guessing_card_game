@@ -3,11 +3,13 @@ use bevy::{
     color::Color,
     prelude::Plugin,
 };
+use match_ui::GameUIMatchPlugin;
 use menu::GameUIMenuPlugin;
+use ui_entities::text_input::TextInputPlugin;
 
+pub mod asset_loader;
 pub mod match_ui;
 pub mod menu;
-pub mod asset_loader;
 pub mod ui_entities;
 
 pub mod components;
@@ -25,7 +27,8 @@ pub struct GameUIPlugin;
 impl Plugin for GameUIPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(GameUIMenuPlugin)
-            .add_plugins(match_ui::GameUIMatchPlugin)
+            .add_plugins(GameUIMatchPlugin)
+            .add_plugins(TextInputPlugin)
             .add_systems(Startup, systems::setup)
             .add_systems(Update, (systems::button_enabled, systems::button_system));
     }

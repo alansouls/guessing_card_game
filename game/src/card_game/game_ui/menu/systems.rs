@@ -1,8 +1,9 @@
 use bevy::color::palettes::css::CRIMSON;
 use bevy::prelude::*;
 
-use crate::card_game::game_ui::DISABLED_TEXT_COLOR;
 use crate::card_game::game_ui::components::ButtonDisabled;
+use crate::card_game::game_ui::ui_entities::text_input::TextInputSpawner;
+use crate::card_game::game_ui::ui_entities::text_input::components::TextInput;
 use crate::card_game::{GameSettings, GameState};
 
 const MIN_PLAYERS: usize = 2;
@@ -90,13 +91,12 @@ pub fn main_menu_setup(mut commands: Commands) {
                             button_node.clone(),
                             BackgroundColor(NORMAL_BUTTON),
                             MenuButtonAction::PlayOnlineGame,
-                            ButtonDisabled,
                         ))
                         .with_children(|parent| {
                             parent.spawn((
                                 Text::new("Play Online Game"),
                                 button_text_font.clone(),
-                                TextColor(DISABLED_TEXT_COLOR),
+                                TextColor(TEXT_COLOR),
                             ));
                         });
 
@@ -244,6 +244,98 @@ pub fn local_game_menu_setup(mut commands: Commands) {
         });
 }
 
+pub fn online_game_menu_setup(mut commands: Commands) {
+    // Common style for all buttons on the screen
+    let button_node = Node {
+        width: Val::Px(300.0),
+        height: Val::Px(65.0),
+        margin: UiRect::all(Val::Px(20.0)),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let button_text_font = TextFont {
+        font_size: 25.0,
+        ..default()
+    };
+
+    commands
+        .spawn((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            OnOnlineGameScreen,
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    BackgroundColor(CRIMSON.into()),
+                ))
+                .with_children(|parent| {
+                    parent.spawn((
+                        Text::new("Online Game Setup"),
+                        TextFont {
+                            font_size: 33.0,
+                            ..default()
+                        },
+                        TextColor(TEXT_COLOR),
+                        Node {
+                            margin: UiRect::all(Val::Px(50.0)),
+                            ..default()
+                        },
+                    ));
+
+                    parent
+                        .spawn_text_input("Room name:", "", 20, 16.0, 500.0, 65.0)
+                        .insert(RoomNameInput);
+
+                    parent
+                        .spawn_text_input("Player name:", "", 20, 16.0, 500.0, 65.0)
+                        .insert(PlayerNameInput);
+
+                    parent
+                        .spawn((
+                            Button,
+                            button_node.clone(),
+                            BackgroundColor(NORMAL_BUTTON),
+                            MenuButtonAction::ConfirmOnlineGame,
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn((
+                                Text::new("Join Game"),
+                                button_text_font.clone(),
+                                TextColor(TEXT_COLOR),
+                            ));
+                        });
+
+                    parent
+                        .spawn((
+                            Button,
+                            button_node.clone(),
+                            BackgroundColor(NORMAL_BUTTON),
+                            MenuButtonAction::BackToMainMenu,
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn((
+                                Text::new("Back to Main Menu"),
+                                button_text_font.clone(),
+                                TextColor(TEXT_COLOR),
+                            ));
+                        });
+                });
+        });
+}
+
 pub fn menu_action(
     interaction_query: Query<
         (&Interaction, &MenuButtonAction, Option<&ButtonDisabled>),
@@ -256,6 +348,8 @@ pub fn menu_action(
     mut game_state: ResMut<NextState<GameState>>,
     mut game_settings: ResMut<GameSettings>,
     player_count_query: Query<&NumberOfLocalPLayers>,
+    room_input_query: Query<&TextInput, (With<RoomNameInput>, Without<PlayerNameInput>)>,
+    player_input_query: Query<&TextInput, With<PlayerNameInput>>,
 ) {
     for (interaction, menu_button_action, disabled) in &interaction_query {
         if *interaction == Interaction::Pressed && disabled.is_none() {
@@ -270,6 +364,17 @@ pub fn menu_action(
                     menu_state.set(MenuState::Disabled);
                     game_state.set(GameState::LocalGameInit);
                 }
+                MenuButtonAction::ConfirmOnlineGame => {
+                    if let (Ok(room_input), Ok(player_input)) = (
+                        room_input_query.get_single(),
+                        player_input_query.get_single(),
+                    ) {
+                        let room_name = &room_input.value;
+                        let player_name = &player_input.value;
+                        println!("Room name: {}, Player name: {}", room_name, player_name);
+                        menu_state.set(MenuState::Main); // Return to main menu for now
+                    }
+                }
                 MenuButtonAction::BackToMainMenu => {
                     menu_state.set(MenuState::Main);
                 }
@@ -279,7 +384,6 @@ pub fn menu_action(
                 MenuButtonAction::RemoveLocalPlayer => {
                     remove_player_events.send(RemovePlayer);
                 }
-                _ => (),
             }
         }
     }
@@ -355,5 +459,32 @@ pub fn enable_disable_remove_player_button(
                 commands.entity(entity).remove::<ButtonDisabled>();
             }
         }
+    }
+}
+
+pub fn cleanup_main_menu(
+    mut commands: Commands,
+    main_menu_query: Query<Entity, With<OnMainMenuScreen>>,
+) {
+    for entity in main_menu_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn cleanup_local_game_menu(
+    mut commands: Commands,
+    local_game_menu_query: Query<Entity, With<OnLocalGameScreen>>,
+) {
+    for entity in local_game_menu_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn cleanup_online_game_menu(
+    mut commands: Commands,
+    online_game_menu_query: Query<Entity, With<OnOnlineGameScreen>>,
+) {
+    for entity in online_game_menu_query.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }

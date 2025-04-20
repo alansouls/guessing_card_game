@@ -6,6 +6,8 @@ pub struct OnMainMenuScreen;
 #[derive(Component)]
 pub struct OnLocalGameScreen;
 
+#[derive(Component)]
+pub struct OnOnlineGameScreen;
 
 #[derive(Component)]
 pub enum MenuButtonAction {
@@ -27,3 +29,9 @@ pub struct AddPlayerButton;
 
 #[derive(Component)]
 pub struct RemovePlayerButton;
+
+#[derive(Component)]
+pub struct RoomNameInput;
+
+#[derive(Component)]
+pub struct PlayerNameInput;
