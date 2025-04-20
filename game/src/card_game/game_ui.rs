@@ -16,7 +16,6 @@ pub mod components;
 pub mod systems;
 
 pub const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
-pub const DISABLED_TEXT_COLOR: Color = Color::srgb(0.5, 0.5, 0.5);
 pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 pub const DISABLED_BUTTON: Color = Color::srgb(0.1, 0.1, 0.1);
 pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);

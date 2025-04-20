@@ -627,7 +627,6 @@ pub fn player_info_ui_setup(
 }
 
 pub fn player_info_ui_update(
-    mut commands: Commands,
     player_info_query: Query<&PlayerInfo, Changed<PlayerInfo>>,
     mut player_info_ui_query: Query<(&PlayerInfoUI, &mut Text)>,
 ) {

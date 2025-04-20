@@ -15,7 +15,7 @@ pub enum GameState {
     Menu,
     LocalGameInit,
     LocalGame,
-    OnlineGame,
+    //OnlineGame,
 }
 
 #[derive(Resource)]

@@ -10,7 +10,7 @@ use bevy::{
     ui::{Interaction, widget::Text},
 };
 
-use super::components::{TextInput, TextInputActive, TextInputValue};
+use super::components::{TextInput, TextInputActive, TextInputLabel, TextInputValue};
 
 pub fn set_text_input_active(
     mut commands: Commands,
@@ -68,6 +68,19 @@ pub fn update_text_input_value(
         for child in text_input_children.iter() {
             if let Ok(mut text) = text_query.get_mut(*child) {
                 text.0 = text_input.value.clone();
+            }
+        }
+    }
+}
+
+pub fn update_text_input_label(
+    text_input_query: Query<(&Children, &TextInput), Changed<TextInput>>,
+    mut text_query: Query<&mut Text, With<TextInputLabel>>,
+) {
+    for (text_input_children, text_input) in &text_input_query {
+        for child in text_input_children.iter() {
+            if let Ok(mut text) = text_query.get_mut(*child) {
+                text.0 = text_input.label.clone();
             }
         }
     }

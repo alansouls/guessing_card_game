@@ -1,14 +1,9 @@
 use bevy::{
     app::{App, Plugin, Update},
-    ecs::{
-        entity::Entity,
-        system::{Commands, EntityCommands},
-    },
+    ecs::system::EntityCommands,
     hierarchy::{BuildChildren, ChildBuild, ChildBuilder},
     text::{TextColor, TextFont},
-    ui::{
-        AlignItems, BackgroundColor, Interaction, JustifyContent, Node, UiRect, Val, widget::Text,
-    },
+    ui::{AlignItems, BackgroundColor, JustifyContent, Node, UiRect, Val, widget::Text},
     utils::default,
 };
 use components::{TextInput, TextInputLabel, TextInputValue};
@@ -98,6 +93,7 @@ impl Plugin for TextInputPlugin {
                 systems::set_text_input_active,
                 systems::handle_text_key_input,
                 systems::update_text_input_value,
+                systems::update_text_input_label,
             ),
         );
     }
