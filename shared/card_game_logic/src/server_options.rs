@@ -9,3 +9,8 @@ pub fn get_server_addr() -> SocketAddr {
     let port = SERVER_PORT.lock().unwrap();
     SocketAddr::from(([ip[0] as u8, ip[1] as u8, ip[2] as u8, ip[3] as u8], *port))
 }
+
+pub fn get_server_bind_addr() -> SocketAddr {
+    let port = SERVER_PORT.lock().unwrap();
+    SocketAddr::from(([0, 0, 0, 0], *port))
+}

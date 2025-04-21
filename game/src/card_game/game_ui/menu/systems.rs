@@ -369,9 +369,8 @@ pub fn menu_action(
                         room_input_query.get_single(),
                         player_input_query.get_single(),
                     ) {
-                        let room_name = &room_input.value;
-                        let player_name = &player_input.value;
-                        println!("Room name: {}, Player name: {}", room_name, player_name);
+                        game_settings.online_room_name = room_input.value.clone();
+                        game_settings.online_player_name = player_input.value.clone();
                         menu_state.set(MenuState::Disabled);
                         game_state.set(GameState::OnlineGameInit);
                     }

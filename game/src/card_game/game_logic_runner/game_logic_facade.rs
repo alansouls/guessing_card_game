@@ -24,7 +24,16 @@ impl GameLogicFacade {
         self
     }
 
-    pub fn init_online(&mut self) -> &GameLogicFacade {
+    pub fn init_online(&mut self, player_name: &String, room_name: &String) -> &GameLogicFacade {
+        let mut game_logic = OnlineGameLogic::new();
+
+        match game_logic.join(player_name.clone(), room_name.clone()) {
+            Ok(_) => (),
+            Err(err) => {
+                panic!("Failed to join online game: {}", err);
+            }
+        }
+
         self.local_game_logic = None;
         self.online_game_logic = Some(OnlineGameLogic::new());
         self

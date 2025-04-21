@@ -24,6 +24,8 @@ pub enum GameState {
 pub struct GameSettings {
     pub player_count: usize,
     pub inital_card_count: usize,
+    pub online_player_name: String,
+    pub online_room_name: String,
 }
 
 impl Default for GameSettings {
@@ -31,6 +33,8 @@ impl Default for GameSettings {
         Self {
             player_count: 4,
             inital_card_count: 3,
+            online_player_name: "Player".to_string(),
+            online_room_name: "Room".to_string(),
         }
     }
 }

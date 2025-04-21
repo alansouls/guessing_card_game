@@ -39,6 +39,16 @@ impl Plugin for GameLogicRunnerPlugin {
                     .chain(),
             )
             .add_systems(
+                OnEnter(GameState::OnlineGameInit),
+                (
+                    systems::online_game_init,
+                    // systems::handle_game_start,
+                    // systems::spawn_cards,
+                    // systems::setup_player_infos,
+                )
+                    .chain(),
+            )
+            .add_systems(
                 Update,
                 (systems::clear_cards).run_if(in_state(MatchState::DisplayingPlayedCard)),
             )

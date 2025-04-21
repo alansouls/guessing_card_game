@@ -78,10 +78,24 @@ impl OnlineGameLogic {
 
         let message = game_message.to_string();
 
-        self.udp_socket
+        let result = self
+            .udp_socket
             .send_to(message.as_bytes(), self.server_address)
             .map_err(|e| e.to_string())
-            .map(|_| ())
+            .map(|_| ());
+
+        if result.is_err() {
+            return result;
+        }
+
+        let mut buf = [0 as u8; 1024];
+        self.udp_socket
+            .recv_from(&mut buf)
+            .expect("Fail to receive message");
+
+        println!("Received message: {}", String::from_utf8_lossy(&buf));
+
+        result
     }
 }
 
@@ -125,19 +139,19 @@ impl GameLogic for OnlineGameLogic {
     fn get_winner(&self) -> usize {
         todo!()
     }
-    
+
     fn get_game_over(&self) -> bool {
         todo!()
     }
-    
+
     fn get_played_cards(&self) -> &Vec<PlayedCard> {
         todo!()
     }
-    
+
     fn get_guessing_round(&self) -> bool {
         todo!()
     }
-    
+
     fn get_player_card_counts(&self) -> &Vec<usize> {
         todo!()
     }

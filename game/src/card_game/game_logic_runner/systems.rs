@@ -24,11 +24,15 @@ use super::{
     game_logic_facade::GameLogicFacade,
 };
 
-pub fn local_game_init(
-    mut game_logic: ResMut<GameLogicRes>,
-    game_settings: Res<GameSettings>,
-) {
+pub fn local_game_init(mut game_logic: ResMut<GameLogicRes>, game_settings: Res<GameSettings>) {
     game_logic.0.init_local(game_settings.inital_card_count);
+}
+
+pub fn online_game_init(mut game_logic: ResMut<GameLogicRes>, game_settings: Res<GameSettings>) {
+    game_logic.0.init_online(
+        &game_settings.online_player_name,
+        &game_settings.online_room_name,
+    );
 }
 
 pub fn handle_game_start(
