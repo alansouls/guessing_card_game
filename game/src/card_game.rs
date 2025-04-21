@@ -5,6 +5,7 @@ use bevy::{
 };
 
 use card_game_logic::game_logic::local::LocalGameLogic;
+use game_logic_runner::game_logic_facade::GameLogicFacade;
 
 pub mod game_logic_runner;
 pub mod game_ui;
@@ -15,7 +16,8 @@ pub enum GameState {
     Menu,
     LocalGameInit,
     LocalGame,
-    //OnlineGame,
+    OnlineGameInit,
+    OnlineGame,
 }
 
 #[derive(Resource)]
@@ -34,7 +36,7 @@ impl Default for GameSettings {
 }
 
 #[derive(Resource)]
-pub struct LocalGameLogicRes(pub LocalGameLogic);
+pub struct GameLogicRes(pub GameLogicFacade);
 
 pub struct CardGamePlugin;
 
@@ -42,7 +44,7 @@ impl Plugin for CardGamePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
             .insert_resource(GameSettings::default())
-            .insert_resource(LocalGameLogicRes(LocalGameLogic::default()))
+            .insert_resource(GameLogicRes(GameLogicFacade::new()))
             .add_plugins(game_logic_runner::GameLogicRunnerPlugin)
             .add_plugins(game_ui::GameUIPlugin);
     }

@@ -31,6 +31,7 @@ impl Plugin for GameLogicRunnerPlugin {
             .add_systems(
                 OnEnter(GameState::LocalGameInit),
                 (
+                    systems::local_game_init,
                     systems::handle_game_start,
                     systems::spawn_cards,
                     systems::setup_player_infos,

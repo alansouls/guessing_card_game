@@ -1,12 +1,33 @@
-use card_game_logic::game_logic::{GameLogic, local::LocalGameLogic};
+use card_game_logic::game_logic::{
+    GameLogic, common::PlayedCard, local::LocalGameLogic, online::OnlineGameLogic,
+};
 
 pub struct GameLogicFacade {
     local_game_logic: Option<LocalGameLogic>,
+    online_game_logic: Option<OnlineGameLogic>,
 }
 
-fn new_local() -> GameLogicFacade {
-    GameLogicFacade {
-        local_game_logic: Some(LocalGameLogic::default()),
+impl GameLogicFacade {
+    pub fn new() -> Self {
+        GameLogicFacade {
+            local_game_logic: None,
+            online_game_logic: None,
+        }
+    }
+
+    pub fn init_local(&mut self, player_count: usize) -> &GameLogicFacade {
+        let mut game_logic = LocalGameLogic::default();
+        game_logic.init(player_count);
+        self.local_game_logic = Some(game_logic);
+        self.online_game_logic = None;
+
+        self
+    }
+
+    pub fn init_online(&mut self) -> &GameLogicFacade {
+        self.local_game_logic = None;
+        self.online_game_logic = Some(OnlineGameLogic::new());
+        self
     }
 }
 
@@ -15,15 +36,18 @@ fn panic_not_initialized() -> ! {
 }
 
 impl GameLogic for GameLogicFacade {
-    fn init(&mut self, player_count: usize, initial_card_count: usize) {
+    fn start_match(
+        &mut self,
+        inital_card_count: usize,
+    ) -> card_game_logic::game_logic::common::CardPlayedResult {
         match self.local_game_logic {
             Some(ref mut game_logic) => {
-                return game_logic.init(player_count, initial_card_count);
+                return game_logic.start_match(inital_card_count);
             }
             None => (),
         }
 
-        panic_not_initialized();
+        panic_not_initialized()
     }
 
     fn set_guess(&mut self, player_id: usize, guess: usize) -> Result<(), String> {
@@ -114,6 +138,50 @@ impl GameLogic for GameLogicFacade {
         match self.local_game_logic {
             Some(ref game_logic) => {
                 return game_logic.get_winner();
+            }
+            None => (),
+        }
+
+        panic_not_initialized()
+    }
+
+    fn get_game_over(&self) -> bool {
+        match self.local_game_logic {
+            Some(ref game_logic) => {
+                return game_logic.get_game_over();
+            }
+            None => (),
+        }
+
+        panic_not_initialized()
+    }
+
+    fn get_played_cards(&self) -> &Vec<PlayedCard> {
+        match self.local_game_logic {
+            Some(ref game_logic) => {
+                return game_logic.get_played_cards();
+            }
+            None => (),
+        }
+
+        panic_not_initialized()
+    }
+
+    fn get_guessing_round(&self) -> bool {
+        match self.local_game_logic {
+            Some(ref game_logic) => {
+                return game_logic.get_guessing_round();
+            }
+            None => (),
+        }
+
+        panic_not_initialized()
+    }
+
+    fn get_player_card_counts(&self) -> &Vec<usize> {
+        match self.local_game_logic {
+            Some(ref game_logic) => {
+                return &game_logic.get_player_card_counts();
             }
             None => (),
         }

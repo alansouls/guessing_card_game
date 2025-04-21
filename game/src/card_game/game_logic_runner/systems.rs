@@ -10,30 +10,35 @@ use bevy::{
     time::{Time, Timer, TimerMode},
 };
 
-use crate::card_game::{GameSettings, GameState, LocalGameLogicRes};
+use crate::card_game::{GameLogicRes, GameSettings, GameState};
 
 use card_game_logic::game_logic::{
     GameLogic,
     common::{Card as CardStruct, CardPlayedResult},
-    local::LocalGameLogic,
 };
 
 use super::{
     MatchState,
     components::{self, CurrentPlayer, DisplayPlayedCardTimer, MaxGuess, TopPlayedCard},
     events::{CardPlayed, GameEnded, PlayerGuessed, PlayerInfoUpdated},
+    game_logic_facade::GameLogicFacade,
 };
+
+pub fn local_game_init(
+    mut game_logic: ResMut<GameLogicRes>,
+    game_settings: Res<GameSettings>,
+) {
+    game_logic.0.init_local(game_settings.inital_card_count);
+}
 
 pub fn handle_game_start(
     mut commands: Commands,
-    mut game_logic: ResMut<LocalGameLogicRes>,
+    mut game_logic: ResMut<GameLogicRes>,
     game_settings: Res<GameSettings>,
     mut match_state: ResMut<NextState<MatchState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    game_logic
-        .0
-        .init(game_settings.player_count, game_settings.inital_card_count);
+    game_logic.0.start_match(game_settings.inital_card_count);
 
     commands.spawn(MaxGuess(game_settings.inital_card_count));
 
@@ -44,7 +49,7 @@ pub fn handle_game_start(
 
 pub fn handle_player_guess(
     mut commands: Commands,
-    mut game_logic: ResMut<LocalGameLogicRes>,
+    mut game_logic: ResMut<GameLogicRes>,
     mut event: EventReader<PlayerGuessed>,
     mut current_player: Single<&mut CurrentPlayer>,
     mut match_state: ResMut<NextState<MatchState>>,
@@ -70,7 +75,7 @@ pub fn handle_player_guess(
 
 pub fn handle_card_played(
     mut commands: Commands,
-    mut game_logic: ResMut<LocalGameLogicRes>,
+    mut game_logic: ResMut<GameLogicRes>,
     mut event: EventReader<CardPlayed>,
     mut current_player: Single<&mut CurrentPlayer>,
     mut game_ended_writer: EventWriter<GameEnded>,
@@ -141,8 +146,8 @@ pub fn handle_card_played(
     }
 }
 
-pub fn spawn_cards(mut commands: Commands, game_logic: Res<LocalGameLogicRes>) {
-    for player_id in 0..game_logic.0.player_card_count.len() {
+pub fn spawn_cards(mut commands: Commands, game_logic: Res<GameLogicRes>) {
+    for player_id in 0..game_logic.0.get_player_card_counts().len() {
         let cards = game_logic.0.get_player_cards(player_id as usize);
         for card in cards.iter() {
             commands.spawn(components::Card {
@@ -184,13 +189,13 @@ pub fn clear_cards(
 fn update_current_player(
     clear_played_cards: bool,
     commands: &mut Commands,
-    game_logic: &LocalGameLogicRes,
+    game_logic: &GameLogicRes,
     current_player: &mut CurrentPlayer,
     match_state: &mut NextState<MatchState>,
 ) {
-    let next_state = if game_logic.0.guessing_round {
+    let next_state = if game_logic.0.get_guessing_round() {
         MatchState::Guessing
-    } else if game_logic.0.game_over {
+    } else if game_logic.0.get_game_over() {
         MatchState::Finished
     } else {
         MatchState::Playing
@@ -216,7 +221,7 @@ fn update_current_player(
 
 fn define_card_as_played(
     commands: &mut Commands,
-    game_logic: &LocalGameLogic,
+    game_logic: &GameLogicFacade,
     player_id: usize,
     card_value: CardStruct,
     cards: &mut Query<(Entity, &mut components::Card)>,
@@ -231,7 +236,7 @@ fn define_card_as_played(
             card.player_id = None;
         }
 
-        if let Some(last_card) = game_logic.cards_played.last() {
+        if let Some(last_card) = game_logic.get_played_cards().last() {
             if last_card.card == card.card {
                 commands.entity(card_entity).insert(TopPlayedCard);
                 if let Some(top_card_entity) = top_card {
@@ -242,8 +247,8 @@ fn define_card_as_played(
     }
 }
 
-pub fn setup_player_infos(mut commands: Commands, game_logic: Res<LocalGameLogicRes>) {
-    for player_id in 0..game_logic.0.player_card_count.len() {
+pub fn setup_player_infos(mut commands: Commands, game_logic: Res<GameLogicRes>) {
+    for player_id in 0..game_logic.0.get_player_card_counts().len() {
         let card_count = game_logic.0.get_player_cards(player_id).len();
         let guess = game_logic.0.get_player_guess(player_id);
         let wins = game_logic.0.get_player_wins(player_id);
@@ -259,7 +264,7 @@ pub fn setup_player_infos(mut commands: Commands, game_logic: Res<LocalGameLogic
 
 pub fn update_player_infos(
     mut event: EventReader<PlayerInfoUpdated>,
-    game_logic: Res<LocalGameLogicRes>,
+    game_logic: Res<GameLogicRes>,
     mut player_info_query: Query<&mut components::PlayerInfo>,
 ) {
     for _ in event.read() {

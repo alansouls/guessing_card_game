@@ -13,6 +13,7 @@ pub struct GameUIMatchPlugin;
 impl Plugin for GameUIMatchPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::LocalGame), systems::match_ui_setup)
+            .add_systems(OnEnter(GameState::OnlineGame), systems::match_ui_setup)
             .add_systems(OnEnter(MatchState::Guessing), systems::guess_ui_setup)
             .add_systems(OnEnter(MatchState::Paused), systems::pause_setup)
             .add_systems(OnEnter(MatchState::Playing), systems::setup_play_area)
@@ -61,6 +62,10 @@ impl Plugin for GameUIMatchPlugin {
             )
             .add_systems(
                 OnExit(GameState::LocalGame),
+                despawn_screen::<components::MatchUI>,
+            )
+            .add_systems(
+                OnExit(GameState::OnlineGame),
                 despawn_screen::<components::MatchUI>,
             );
     }

@@ -17,6 +17,39 @@ pub struct LocalGameLogic {
     wins: Vec<usize>,
 }
 
+impl LocalGameLogic {
+    pub fn init(&mut self, player_count: usize) {
+        self.player_turn = 0;
+        self.player_card_count = vec![0; player_count];
+        self.game_over = false;
+        self.wins = vec![0; player_count];
+        self.player_cards = vec![Vec::new(); player_count];
+        self.cards_played = Vec::new();
+    }
+
+    fn start_match(&mut self) -> CardPlayedResult {
+        if self.player_card_count.iter().filter(|c| **c > 0).count() == 1 {
+            self.game_over = true;
+            return CardPlayedResult::GameOver;
+        }
+        self.starting_turn = self.player_turn;
+        self.deck = create_deck();
+        shuffle_deck(&mut self.deck);
+        distribute_cards(self);
+        self.guessing_round = true;
+        self.guesses = vec![0; self.player_card_count.len()];
+        self.wins = vec![0; self.player_card_count.len()];
+
+        if self.player_turn == 0 {
+            self.last_to_guess = self.player_card_count.len() - 1;
+        } else {
+            self.last_to_guess = self.player_turn - 1;
+        }
+
+        return CardPlayedResult::NextMatch;
+    }
+}
+
 impl Default for LocalGameLogic {
     fn default() -> Self {
         Self {
@@ -119,7 +152,7 @@ fn check_match_finished(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
 
     if match_finished {
         remove_cards_from_players(game_logic);
-        return start_match(game_logic);
+        return game_logic.start_match();
     } else {
         start_playing_round(game_logic);
         return CardPlayedResult::NextTurn;
@@ -136,34 +169,6 @@ fn remove_cards_from_players(game_logic: &mut LocalGameLogic) {
     }
 
     game_logic.cards_played.clear();
-}
-
-fn start_match(game_logic: &mut LocalGameLogic) -> CardPlayedResult {
-    if game_logic
-        .player_card_count
-        .iter()
-        .filter(|c| **c > 0)
-        .count()
-        == 1
-    {
-        game_logic.game_over = true;
-        return CardPlayedResult::GameOver;
-    }
-    game_logic.starting_turn = game_logic.player_turn;
-    game_logic.deck = create_deck();
-    shuffle_deck(&mut game_logic.deck);
-    distribute_cards(game_logic);
-    game_logic.guessing_round = true;
-    game_logic.guesses = vec![0; game_logic.player_card_count.len()];
-    game_logic.wins = vec![0; game_logic.player_card_count.len()];
-
-    if game_logic.player_turn == 0 {
-        game_logic.last_to_guess = game_logic.player_card_count.len() - 1;
-    } else {
-        game_logic.last_to_guess = game_logic.player_turn - 1;
-    }
-
-    return CardPlayedResult::NextMatch;
 }
 
 fn distribute_cards(game_logic: &mut LocalGameLogic) {
@@ -190,15 +195,10 @@ fn push_played_card(game_logic: &mut LocalGameLogic, card: &PlayedCard) {
 }
 
 impl GameLogic for LocalGameLogic {
-    fn init(&mut self, player_count: usize, initial_card_count: usize) {
-        self.player_turn = 0;
-        self.player_card_count = vec![initial_card_count; player_count];
-        self.game_over = false;
-        self.wins = vec![0; player_count];
-        self.player_cards = vec![Vec::new(); player_count];
-        self.cards_played = Vec::new();
+    fn start_match(&mut self, initial_card_count: usize) -> CardPlayedResult {
+        self.player_card_count = vec![initial_card_count; self.player_card_count.len()];
 
-        start_match(self);
+        self.start_match()
     }
 
     fn set_guess(&mut self, player_id: usize, guess: usize) -> Result<(), String> {
@@ -290,5 +290,21 @@ impl GameLogic for LocalGameLogic {
             .collect::<Vec<usize>>()
             .pop()
             .expect("No winner found");
+    }
+
+    fn get_game_over(&self) -> bool {
+        self.game_over
+    }
+
+    fn get_played_cards(&self) -> &Vec<PlayedCard> {
+        &self.cards_played
+    }
+
+    fn get_guessing_round(&self) -> bool {
+        self.guessing_round
+    }
+
+    fn get_player_card_counts(&self) -> &Vec<usize> {
+        &self.player_card_count
     }
 }

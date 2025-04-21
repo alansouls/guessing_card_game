@@ -372,7 +372,8 @@ pub fn menu_action(
                         let room_name = &room_input.value;
                         let player_name = &player_input.value;
                         println!("Room name: {}, Player name: {}", room_name, player_name);
-                        menu_state.set(MenuState::Main); // Return to main menu for now
+                        menu_state.set(MenuState::Disabled);
+                        game_state.set(GameState::OnlineGameInit);
                     }
                 }
                 MenuButtonAction::BackToMainMenu => {
