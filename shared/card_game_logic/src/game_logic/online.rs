@@ -1,4 +1,9 @@
-use std::net::{SocketAddr, UdpSocket};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    str::FromStr,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use crate::{
     game_message::{GameMessage, MessageParam, MessageType},
@@ -6,8 +11,7 @@ use crate::{
 };
 
 use super::{
-    GameLogic,
-    common::{Card, PlayedCard},
+    common::{Card, CardPlayedResult, PlayedCard}, GameLogic
 };
 
 pub struct OnlinePlayerInfo {
@@ -25,9 +29,12 @@ pub struct OnlineGameLogic {
     played_cards: Vec<PlayedCard>,
     player_infos: Vec<OnlinePlayerInfo>,
     player_turn: usize,
+    guessing_round: bool,
     game_over: bool,
-    udp_socket: UdpSocket,
+    udp_socket: Arc<UdpSocket>,
     server_address: SocketAddr,
+    message_queue: Arc<Mutex<Vec<GameMessage>>>,
+    listener_thread: Option<thread::JoinHandle<()>>,
 }
 
 impl OnlineGameLogic {
@@ -47,17 +54,48 @@ impl OnlineGameLogic {
             }
         };
 
-        OnlineGameLogic {
+        let udp_socket = Arc::new(udp_socket);
+
+        let mut game_logic = OnlineGameLogic {
             player_id: None,
             is_host: false,
             player_cards: vec![],
             played_cards: vec![],
             player_infos: vec![],
             player_turn: 0,
+            guessing_round: false,
             game_over: false,
-            udp_socket: udp_socket,
+            udp_socket: udp_socket.clone(),
             server_address: server_options::get_server_addr(),
-        }
+            message_queue: Arc::new(Mutex::new(vec![])),
+            listener_thread: None,
+        };
+
+        let udp_socket_for_listener = udp_socket;
+
+        let message_queue_for_listener = game_logic.message_queue.clone();
+        game_logic.listener_thread = Some(thread::spawn(move || {
+            loop {
+                let mut buf = [0 as u8; 1024];
+
+                let (size, _) = udp_socket_for_listener
+                    .recv_from(&mut buf)
+                    .expect("Failed to receive message");
+
+                let message_str = String::from_utf8_lossy(&buf[..size]);
+                match GameMessage::from_str(message_str.as_ref()) {
+                    Ok(message) => match message_queue_for_listener.lock() {
+                        Ok(mut message_queue) => {
+                            message_queue.push(message);
+                        }
+                        Err(e) => println!("Failed to lock message queue: {}", e),
+                    },
+                    Err(_) => println!("Failed to parse message {}", message_str),
+                };
+            }
+        }));
+
+        return game_logic;
     }
 
     pub fn join(&mut self, player_name: String, room_name: String) -> Result<(), String> {
@@ -88,24 +126,55 @@ impl OnlineGameLogic {
             return result;
         }
 
-        let mut buf = [0 as u8; 1024];
-        self.udp_socket
-            .recv_from(&mut buf)
-            .expect("Fail to receive message");
-
-        println!("Received message: {}", String::from_utf8_lossy(&buf));
-
         result
     }
 }
 
 impl GameLogic for OnlineGameLogic {
     fn start_match(&mut self, inital_card_count: usize) -> super::common::CardPlayedResult {
-        todo!()
+        if !self.is_host {
+            return CardPlayedResult::NextPlayer;
+        }
+
+        let game_message = GameMessage {
+            player_id: self.player_id.unwrap(),
+            message_type: MessageType::StartMatch,
+            message_params: vec![MessageParam {
+                key: "card_count".to_string(),
+                value: inital_card_count.to_string(),
+            }],
+        };
+
+        let message = game_message.to_string();
+
+        let _ = self
+            .udp_socket
+            .send_to(message.as_bytes(), self.server_address);
+
+        CardPlayedResult::WaitUpdate
     }
 
     fn set_guess(&mut self, player_id: usize, guess: usize) -> Result<(), String> {
-        todo!()
+        if self.player_turn != player_id {
+            return Err("Not your turn".to_string());
+        }
+
+        let game_message = GameMessage {
+            player_id,
+            message_type: MessageType::Guess,
+            message_params: vec![MessageParam {
+                key: "guess".to_string(),
+                value: guess.to_string(),
+            }],
+        };
+
+        let message = game_message.to_string();
+
+        let _ = self
+            .udp_socket
+            .send_to(message.as_bytes(), self.server_address);
+
+        Ok(())
     }
 
     fn play_card(
@@ -113,46 +182,79 @@ impl GameLogic for OnlineGameLogic {
         player_id: usize,
         card: &Card,
     ) -> Result<super::common::CardPlayedResult, String> {
-        todo!()
+        if self.player_turn != player_id {
+            return Err("Not your turn".to_string());
+        }
+
+        let game_message = GameMessage {
+            player_id,
+            message_type: MessageType::PlayCard,
+            message_params: vec![MessageParam {
+                key: "card_suit".to_string(),
+                value: format!("{:?}", card.0),
+            }, 
+            MessageParam {
+                key: "card_rank".to_string(),
+                value: format!("{:?}", card.1),
+            }],
+        };
+
+        let message = game_message.to_string();
+
+        let _ = self
+            .udp_socket
+            .send_to(message.as_bytes(), self.server_address);
+
+        Ok(CardPlayedResult::WaitUpdate)
     }
 
     fn get_player_cards(&self, player_id: usize) -> &Vec<Card> {
-        todo!()
+        if player_id == self.player_id.unwrap() {
+            return &self.player_cards;
+        }
+
+        panic!("Should not access other players cards");
     }
 
     fn get_player_card_count(&self, player_id: usize) -> usize {
-        todo!()
+        let player_info = &self.player_infos[player_id];
+
+        player_info.player_card_count
     }
 
     fn get_player_turn(&self) -> usize {
-        todo!()
+        self.player_turn
     }
 
     fn get_player_guess(&self, player_id: usize) -> usize {
-        todo!()
+        let player_info = &self.player_infos[player_id];
+
+        player_info.player_guess
     }
 
     fn get_player_wins(&self, player_id: usize) -> usize {
-        todo!()
+        let player_info = &self.player_infos[player_id];
+
+        player_info.player_wins
     }
 
     fn get_winner(&self) -> usize {
-        todo!()
+        todo!();
     }
 
     fn get_game_over(&self) -> bool {
-        todo!()
+        self.game_over
     }
 
     fn get_played_cards(&self) -> &Vec<PlayedCard> {
-        todo!()
+        &self.played_cards
     }
 
     fn get_guessing_round(&self) -> bool {
-        todo!()
+        self.guessing_round
     }
 
-    fn get_player_card_counts(&self) -> &Vec<usize> {
-        todo!()
+    fn get_player_count(&self) -> usize {
+        self.player_infos.len()
     }
 }

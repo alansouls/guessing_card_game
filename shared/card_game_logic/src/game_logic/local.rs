@@ -304,7 +304,7 @@ impl GameLogic for LocalGameLogic {
         self.guessing_round
     }
 
-    fn get_player_card_counts(&self) -> &Vec<usize> {
-        &self.player_card_count
+    fn get_player_count(&self) -> usize {
+        self.player_card_count.len()
     }
 }

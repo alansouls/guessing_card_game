@@ -49,5 +49,6 @@ pub enum CardPlayedResult {
     NextPlayer,
     NextTurn,
     NextMatch,
-    GameOver
+    GameOver,
+    WaitUpdate,
 }

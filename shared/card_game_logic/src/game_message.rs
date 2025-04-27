@@ -6,6 +6,7 @@ pub enum MessageType {
     PlayerJoin = 0,
     Guess = 1,
     PlayCard = 2,
+    StartMatch = 5,
 
     //Responses
     PlayerJoined = 3,
@@ -28,6 +29,7 @@ impl FromStr for MessageType {
             "2" => Ok(MessageType::PlayCard),
             "3" => Ok(MessageType::PlayerJoined),
             "4" => Ok(MessageType::UpdateState),
+            "5" => Ok(MessageType::StartMatch),
             _ => Err(()),
         }
     }

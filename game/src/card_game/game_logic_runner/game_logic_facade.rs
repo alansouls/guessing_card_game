@@ -36,6 +36,7 @@ impl GameLogicFacade {
 
         self.local_game_logic = None;
         self.online_game_logic = Some(OnlineGameLogic::new());
+        
         self
     }
 }
@@ -187,12 +188,15 @@ impl GameLogic for GameLogicFacade {
         panic_not_initialized()
     }
 
-    fn get_player_card_counts(&self) -> &Vec<usize> {
-        match self.local_game_logic {
-            Some(ref game_logic) => {
-                return &game_logic.get_player_card_counts();
+    fn get_player_count(&self) -> usize {
+        match (&self.local_game_logic, &self.online_game_logic) {
+            (Some(game_logic), None) => {
+                return game_logic.get_player_count();
+            },
+            (None, Some(game_logic)) => {
+                return game_logic.get_player_count();
             }
-            None => (),
+            _ => (),
         }
 
         panic_not_initialized()

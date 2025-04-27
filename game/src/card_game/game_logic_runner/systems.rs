@@ -142,7 +142,10 @@ pub fn handle_card_played(
 
                 let winner = game_logic.0.get_winner();
                 game_ended_writer.send(GameEnded { winner });
-            }
+            },
+            Ok(CardPlayedResult::WaitUpdate) => {
+                todo!()
+            },
             Err(err) => {
                 println!("Error playing card: {}", err);
             }
@@ -151,7 +154,7 @@ pub fn handle_card_played(
 }
 
 pub fn spawn_cards(mut commands: Commands, game_logic: Res<GameLogicRes>) {
-    for player_id in 0..game_logic.0.get_player_card_counts().len() {
+    for player_id in 0..game_logic.0.get_player_count() {
         let cards = game_logic.0.get_player_cards(player_id as usize);
         for card in cards.iter() {
             commands.spawn(components::Card {
@@ -252,7 +255,7 @@ fn define_card_as_played(
 }
 
 pub fn setup_player_infos(mut commands: Commands, game_logic: Res<GameLogicRes>) {
-    for player_id in 0..game_logic.0.get_player_card_counts().len() {
+    for player_id in 0..game_logic.0.get_player_count() {
         let card_count = game_logic.0.get_player_cards(player_id).len();
         let guess = game_logic.0.get_player_guess(player_id);
         let wins = game_logic.0.get_player_wins(player_id);

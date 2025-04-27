@@ -31,5 +31,5 @@ pub trait GameLogic {
     fn get_game_over(&self) -> bool;
     fn get_played_cards(&self) -> &Vec<PlayedCard>;
     fn get_guessing_round(&self) -> bool;
-    fn get_player_card_counts(&self) -> &Vec<usize>;
+    fn get_player_count(&self) -> usize;
 }
